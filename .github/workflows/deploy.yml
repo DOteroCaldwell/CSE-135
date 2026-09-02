@@ -1,0 +1,67 @@
+name: Deploy to DigitalOcean Droplet
+
+# Deploys each sites/<vhost>/ directory to its matching Apache web root on the
+# droplet via rsync over SSH. Requires these GitHub repository secrets:
+#   DROPLET_HOST   - droplet IP or hostname
+#   DROPLET_USER   - deploy user (must own /var/www/* or use sudo-less rsync)
+#   DROPLET_SSH_KEY- private key whose public half is in that user's authorized_keys
+#   DOMAIN         - e.g. ucsdwrestlingclub.com   (used to build the web-root paths)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DROPLET_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.DROPLET_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy each vhost
+        env:
+          HOST: ${{ secrets.DROPLET_HOST }}
+          USER: ${{ secrets.DROPLET_USER }}
+          DOMAIN: ${{ secrets.DOMAIN }}
+        run: |
+          set -euo pipefail
+          SSH="ssh -i ~/.ssh/deploy_key"
+
+          # Map repo dir -> web root. Only non-empty site dirs are synced.
+          declare -A ROOTS=(
+            [main]="/var/www/${DOMAIN}"
+            [test]="/var/www/test.${DOMAIN}"
+            [collector]="/var/www/collector.${DOMAIN}"
+            [reporting]="/var/www/reporting.${DOMAIN}"
+          )
+
+          for dir in "${!ROOTS[@]}"; do
+            src="sites/${dir}/"
+            dest="${ROOTS[$dir]}/"
+            echo "== Deploying ${src} -> ${USER}@${HOST}:${dest}"
+            $SSH "${USER}@${HOST}" "mkdir -p '${dest}'"
+            rsync -az --delete \
+              --exclude 'README.md' \
+              --exclude '.gitkeep' \
+              -e "$SSH" \
+              "${src}" "${USER}@${HOST}:${dest}"
+          done
+
+      - name: Reload Apache
+        env:
+          HOST: ${{ secrets.DROPLET_HOST }}
+          USER: ${{ secrets.DROPLET_USER }}
+        run: |
+          ssh -i ~/.ssh/deploy_key "${USER}@${HOST}" "sudo systemctl reload apache2 || true"

@@ -1,0 +1,33 @@
+# Sample Apache vhost for the main team site.
+# Copy to /etc/apache2/sites-available/ucsdwrestlingclub.com.conf on the droplet,
+# then:  sudo a2ensite ucsdwrestlingclub.com && sudo systemctl reload apache2
+# Run certbot afterwards to add the HTTPS (:443) vhost automatically.
+
+<VirtualHost *:80>
+    ServerName ucsdwrestlingclub.com
+    ServerAlias www.ucsdwrestlingclub.com
+    DocumentRoot /var/www/ucsdwrestlingclub.com
+
+    <Directory /var/www/ucsdwrestlingclub.com>
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    # HW1 Step 7 — custom 404
+    ErrorDocument 404 /404.html
+
+    # HW1 Step 6 — spoof the Server header.
+    # NOTE: this needs `ServerTokens Full` (in /etc/apache2/conf-available/security.conf)
+    # AND mod_headers; the "obvious" ServerTokens-only approach will NOT fully work.
+    Header always set Server "CSE135 Server"
+
+    # HW1 Step 5 — compression (mod_deflate)
+    <IfModule mod_deflate.c>
+        AddOutputFilterByType DEFLATE text/html text/plain text/css \
+            application/javascript application/json image/svg+xml
+    </IfModule>
+
+    ErrorLog  ${APACHE_LOG_DIR}/yourdomain_error.log
+    CustomLog ${APACHE_LOG_DIR}/yourdomain_access.log combined
+</VirtualHost>

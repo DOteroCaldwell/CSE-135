@@ -1,0 +1,71 @@
+# Deployment
+
+The repo root is **not** the web root. Each `sites/<vhost>/` directory maps to
+one Apache vhost web root on the droplet:
+
+| Repo dir            | Droplet web root                        | Vhost                          |
+| ------------------- | --------------------------------------- | ------------------------------ |
+| `sites/main`        | `/var/www/ucsdwrestlingclub.com`              | `ucsdwrestlingclub.com`              |
+| `sites/test`        | `/var/www/test.ucsdwrestlingclub.com`         | `test.ucsdwrestlingclub.com`         |
+| `sites/collector`   | `/var/www/collector.ucsdwrestlingclub.com`    | `collector.ucsdwrestlingclub.com`    |
+| `sites/reporting`   | `/var/www/reporting.ucsdwrestlingclub.com`    | `reporting.ucsdwrestlingclub.com`    |
+
+Specs (`docs/`), this deploy tooling, and READMEs never reach the web root —
+only the contents of each `sites/<vhost>/` are synced.
+
+## Primary path: GitHub Actions (`.github/workflows/deploy.yml`)
+
+On every push to `main`, the workflow rsyncs each `sites/<vhost>/` to its web
+root over SSH and reloads Apache.
+
+**One-time setup:**
+
+1. On the droplet, create a deploy user (or reuse `grader`/your account) and
+   make sure it can write to `/var/www/*` (e.g. `sudo chown -R $USER:www-data /var/www`)
+   and run `sudo systemctl reload apache2`.
+2. Generate a deploy keypair locally:
+   `ssh-keygen -t ed25519 -f deploy_key -C "gh-actions-deploy"`
+   Append `deploy_key.pub` to the deploy user's `~/.ssh/authorized_keys`.
+3. In the GitHub repo → Settings → Secrets and variables → Actions, add:
+   - `DROPLET_HOST` — droplet IP/hostname
+   - `DROPLET_USER` — deploy username
+   - `DROPLET_SSH_KEY` — contents of the **private** `deploy_key`
+   - `DOMAIN` — e.g. `ucsdwrestlingclub.com`
+4. Push to `main`. Watch the run under the Actions tab.
+
+> For HW1's `Github-Deploy.gif` deliverable: record editing a file → committing →
+> pushing → the Actions run going green → the change live on the droplet.
+
+## Alternative: bare-repo `post-receive` hook
+
+If you prefer the sitepoint-style git hook instead of Actions, on the droplet:
+
+```bash
+mkdir -p ~/site.git && cd ~/site.git && git init --bare
+cat > hooks/post-receive <<'EOF'
+#!/bin/bash
+set -e
+TMP=$(mktemp -d)
+git --work-tree="$TMP" --git-dir="$HOME/site.git" checkout -f main
+for d in main test collector reporting; do
+  case "$d" in
+    main) root="/var/www/ucsdwrestlingclub.com" ;;
+    *)    root="/var/www/$d.ucsdwrestlingclub.com" ;;
+  esac
+  mkdir -p "$root"
+  rsync -a --delete --exclude README.md --exclude .gitkeep "$TMP/sites/$d/" "$root/"
+done
+sudo systemctl reload apache2
+rm -rf "$TMP"
+EOF
+chmod +x hooks/post-receive
+```
+
+Then locally: `git remote add production <user>@<host>:site.git` and
+`git push production main`.
+
+## Apache vhost configs
+
+See `deploy/apache/main.conf.sample`. The other three vhosts follow the same
+pattern with their own `ServerName`/`DocumentRoot`. Enable with `a2ensite`, then
+run `certbot` for SSL.

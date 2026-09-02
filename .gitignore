@@ -1,0 +1,27 @@
+# Secrets / credentials — never commit
+*.pem
+*.key
+deploy_key*
+.env
+.env.*
+!.env.example
+
+# Private submission notes (grader credentials, write-ups)
+docs/writeups/
+
+# Dependencies
+node_modules/
+vendor/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Build / logs / temp
+dist/
+build/
+*.log
+tmp/
