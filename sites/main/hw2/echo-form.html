@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CSE 135 HW2 echo form — drives the PHP, Go and Python echo endpoints.">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/hw2/hw2.css">
+  <title>Echo Form — HW2</title>
+  <!-- Set a marker before first paint so the two control sets never flash. -->
+  <script>document.documentElement.className += " js";</script>
+</head>
+
+<body>
+  <header>
+    <h1>Echo Form</h1>
+    <p class="tagline">Send a request to any language's echo endpoint and read back what arrived.</p>
+  </header>
+
+  <main>
+    <form id="echo-form" action="/hw2/php/echo-php-diego.php" method="post">
+      <h2>Fields to send</h2>
+
+      <div class="field-row">
+        <label for="wrestler">wrestler</label>
+        <input type="text" id="wrestler" name="wrestler" value="Diego">
+      </div>
+      <div class="field-row">
+        <label for="weight_class">weight_class</label>
+        <input type="text" id="weight_class" name="weight_class" value="125">
+      </div>
+      <div class="field-row">
+        <label for="message">message</label>
+        <input type="text" id="message" name="message" value="hello from the echo form">
+      </div>
+      <div class="field-row">
+        <label for="record_id">record_id <span class="muted">(used by PUT and DELETE)</span></label>
+        <input type="text" id="record_id" name="record_id" value="7">
+      </div>
+
+      <!-- ============================================================
+           Enhanced controls. Hidden by CSS unless the marker class is
+           present, so a browser with script off never sees them.
+           ============================================================ -->
+      <div class="js-only">
+        <h2>Request</h2>
+
+        <div class="field-row">
+          <label for="lang">Language endpoint</label>
+          <select id="lang" name="lang">
+            <option value="/hw2/php/echo-php-diego.php">PHP</option>
+            <option value="/hw2/go/echo-go-diego.cgi">Go</option>
+            <option value="/hw2/python/echo-python-diego.py">Python</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <label for="method">HTTP method</label>
+          <select id="method" name="method">
+            <option value="GET">GET</option>
+            <option value="POST" selected>POST</option>
+            <option value="PUT">PUT</option>
+            <option value="DELETE">DELETE</option>
+          </select>
+        </div>
+
+        <div class="field-row">
+          <label for="encoding">Encoding</label>
+          <select id="encoding" name="encoding">
+            <option value="application/x-www-form-urlencoded">application/x-www-form-urlencoded</option>
+            <option value="application/json">application/json</option>
+          </select>
+        </div>
+
+        <button type="submit" id="send">Send request</button>
+      </div>
+
+      <!-- ============================================================
+           Reduced mode. An HTML form carries one method and one action,
+           but a submit button may override both with formmethod and
+           formaction — so script-off still reaches every endpoint over
+           GET and POST without any JavaScript at all.
+           ============================================================ -->
+      <div class="nojs-only">
+        <h2>Send</h2>
+        <p class="note">
+          Running with JavaScript disabled, so this is the reduced mode: GET and
+          POST only, and <code>x-www-form-urlencoded</code> only. PUT, DELETE and
+          JSON bodies need <code>fetch()</code>, which is unavailable here. The
+          response replaces this page rather than appearing inline.
+        </p>
+
+        <ul>
+          <li>
+            <strong>PHP</strong> —
+            <button type="submit" formmethod="get" formaction="/hw2/php/echo-php-diego.php">GET</button>
+            <button type="submit" formmethod="post" formaction="/hw2/php/echo-php-diego.php">POST</button>
+          </li>
+          <li>
+            <strong>Go</strong> —
+            <button type="submit" formmethod="get" formaction="/hw2/go/echo-go-diego.cgi">GET</button>
+            <button type="submit" formmethod="post" formaction="/hw2/go/echo-go-diego.cgi">POST</button>
+          </li>
+          <li>
+            <strong>Python</strong> —
+            <button type="submit" formmethod="get" formaction="/hw2/python/echo-python-diego.py">GET</button>
+            <button type="submit" formmethod="post" formaction="/hw2/python/echo-python-diego.py">POST</button>
+          </li>
+        </ul>
+      </div>
+    </form>
+
+    <section class="js-only" aria-labelledby="response-heading">
+      <h2 id="response-heading">Response</h2>
+      <p id="response-status" class="note">No request sent yet.</p>
+      <pre class="out" id="response-body">—</pre>
+    </section>
+
+    <p><a href="/hw2/">&larr; HW2 index</a> · <a href="/">Home</a></p>
+  </main>
+
+  <footer>
+    <p>CSE 135 · HW2 · vanilla JavaScript only, no libraries.</p>
+  </footer>
+
+  <script src="/hw2/echo.js" defer></script>
+</body>
+
+</html>

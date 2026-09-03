@@ -1,0 +1,33 @@
+# HW2 extra credit — route three URLs at the custom modules.
+# Add to the main site's <VirtualHost *:443> after the modules are installed.
+
+<Location /hw2/module/hello>
+    SetHandler hw2-hello
+</Location>
+
+<Location /hw2/module/environment>
+    SetHandler hw2-environment
+</Location>
+
+<Location /hw2/module/echo>
+    SetHandler hw2-echo
+</Location>
+
+# ---------------------------------------------------------------------------
+# Sessioning with stock Apache modules — no custom session module written.
+#
+#   sudo a2enmod session session_cookie session_crypto
+#   sudo /usr/bin/openssl rand -base64 32     # generate the passphrase
+#
+# <Location /hw2/module/state>
+#     Session On
+#     SessionCookieName hw2modsession path=/hw2/;httponly;secure;samesite=Lax
+#     SessionCryptoPassphrase <paste the generated value>
+#     SessionMaxAge 1800
+#     SetHandler hw2-echo
+# </Location>
+#
+# Note what this is: mod_session_cookie stores the session *contents*
+# in the cookie, encrypted by mod_session_crypto — so it is a client-side store
+# with server-held keys, not a server-side session. mod_session_dbd is the
+# variant that keeps contents in a database server-side.

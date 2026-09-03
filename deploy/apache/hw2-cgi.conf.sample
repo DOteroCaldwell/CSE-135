@@ -1,0 +1,48 @@
+# HW2 — CGI execution for the main team site.
+#
+# Paste these blocks into the main site's <VirtualHost *:443> in
+# /etc/apache2/sites-available/, alongside the HW1 directives, then:
+#
+#   sudo a2enmod cgid
+#   sudo apachectl configtest && sudo systemctl reload apache2
+#
+# Notes on the choices here:
+#
+#  * mod_cgid rather than mod_cgi — required with the threaded event/worker MPM
+#    that runs alongside php-fpm.
+#
+#  * SetHandler cgi-script inside a narrowly scoped <Directory>, rather than a
+#    site-wide "AddHandler cgi-script .py .cgi". Only these three directories
+#    can execute anything, and they contain nothing but the demo programs, so
+#    an uploaded or stray file elsewhere in the docroot is never executable.
+#
+#  * Require valid-user is inherited from the existing DocumentRoot block, so
+#    the CGI programs stay behind HTTP basic auth like the rest of the site.
+#
+#  * PHP is not listed: it is handled by php-fpm through the existing
+#    SetHandler/ProxyFCGI configuration, not as CGI.
+
+<Directory /var/www/ucsdwrestlingclub.com/hw2/perl>
+    Options +ExecCGI -Indexes
+    SetHandler cgi-script
+</Directory>
+
+<Directory /var/www/ucsdwrestlingclub.com/hw2/python>
+    Options +ExecCGI -Indexes
+    SetHandler cgi-script
+</Directory>
+
+<Directory /var/www/ucsdwrestlingclub.com/hw2/go>
+    Options +ExecCGI -Indexes
+    SetHandler cgi-script
+</Directory>
+
+# The Go and Python state demos keep server-side sessions as files here.
+# Create it once, owned by the Apache user:
+#
+#   sudo mkdir -p /var/lib/cse135/sessions
+#   sudo chown www-data:www-data /var/lib/cse135/sessions
+#   sudo chmod 700 /var/lib/cse135/sessions
+#
+# It sits outside the document root on purpose — session contents must not be
+# reachable over HTTP.

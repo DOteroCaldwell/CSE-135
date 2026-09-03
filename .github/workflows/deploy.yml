@@ -23,6 +23,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # HW2: the Go CGI demos are compiled here, not on the droplet.
+      # CGO_ENABLED=0 produces a static binary, so the server needs no Go
+      # toolchain and no shared libraries at runtime.
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+          cache-dependency-path: src/hw2/go/go.mod
+
+      - name: Build Go CGI binaries
+        run: |
+          set -euo pipefail
+          out="$GITHUB_WORKSPACE/sites/main/hw2/go"
+          mkdir -p "$out"
+          cd src/hw2/go
+          go vet ./...
+          for dir in cmd/*/; do
+            name=$(basename "$dir")
+            echo "== building ${name}.cgi"
+            CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+              go build -trimpath -ldflags="-s -w" -o "${out}/${name}.cgi" "./${dir}"
+          done
+          chmod +x "${out}"/*.cgi
+          ls -l "${out}"
+
       - name: Set up SSH
         run: |
           mkdir -p ~/.ssh

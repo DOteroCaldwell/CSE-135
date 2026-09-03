@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="CSE 135 HW2 — server-side CGI demos in PHP, Go and Python.">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/hw2/hw2.css">
+  <title>HW2 — Server-Side Basics</title>
+</head>
+
+<body>
+  <header>
+    <h1>HW2 — Server-Side Basics</h1>
+    <p class="tagline">The same five programs, written three times over.</p>
+  </header>
+
+  <main>
+    <section aria-labelledby="about-heading">
+      <h2 id="about-heading">What this is</h2>
+      <p>
+        Five CGI programs — a HTML greeting, the same greeting as JSON, an
+        environment dump, a request echo, and a server-side session demo —
+        implemented independently in <strong>PHP</strong>, <strong>Go</strong>
+        and <strong>Python</strong>. The point is how little the language
+        changes: every one of them reads the same CGI environment, parses the
+        same request body off standard input, and writes the same headers.
+      </p>
+      <ul>
+        <li><a href="/hw2/echo-form.html">Echo form</a> — drives all three echo endpoints</li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="php-heading">
+      <h2 id="php-heading">PHP</h2>
+      <ul>
+        <li><a href="/hw2/php/hello-html-php-diego.php">hello-html-php-diego</a></li>
+        <li><a href="/hw2/php/hello-json-php-diego.php">hello-json-php-diego</a></li>
+        <li><a href="/hw2/php/environment-php-diego.php">environment-php-diego</a></li>
+        <li><a href="/hw2/php/echo-php-diego.php">echo-php-diego</a></li>
+        <li>
+          <a href="/hw2/php/state-php-diego.php">state-php-diego</a>
+          <ul>
+            <li><a href="/hw2/php/state-view-php-diego.php">view saved data</a></li>
+            <li><a href="/hw2/php/state-clear-php-diego.php">clear saved data</a></li>
+          </ul>
+        </li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="go-heading">
+      <h2 id="go-heading">Go</h2>
+      <ul>
+        <li><a href="/hw2/go/hello-html-go-diego.cgi">hello-html-go-diego</a></li>
+        <li><a href="/hw2/go/hello-json-go-diego.cgi">hello-json-go-diego</a></li>
+        <li><a href="/hw2/go/environment-go-diego.cgi">environment-go-diego</a></li>
+        <li><a href="/hw2/go/echo-go-diego.cgi">echo-go-diego</a></li>
+        <li>
+          <a href="/hw2/go/state-go-diego.cgi">state-go-diego</a>
+          <ul>
+            <li><a href="/hw2/go/state-view-go-diego.cgi">view saved data</a></li>
+            <li><a href="/hw2/go/state-clear-go-diego.cgi">clear saved data</a></li>
+          </ul>
+        </li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="python-heading">
+      <h2 id="python-heading">Python</h2>
+      <ul>
+        <li><a href="/hw2/python/hello-html-python-diego.py">hello-html-python-diego</a></li>
+        <li><a href="/hw2/python/hello-json-python-diego.py">hello-json-python-diego</a></li>
+        <li><a href="/hw2/python/environment-python-diego.py">environment-python-diego</a></li>
+        <li><a href="/hw2/python/echo-python-diego.py">echo-python-diego</a></li>
+        <li>
+          <a href="/hw2/python/state-python-diego.py">state-python-diego</a>
+          <ul>
+            <li><a href="/hw2/python/state-view-python-diego.py">view saved data</a></li>
+            <li><a href="/hw2/python/state-clear-python-diego.py">clear saved data</a></li>
+          </ul>
+        </li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="perl-heading">
+      <h2 id="perl-heading">Perl (provided by the course)</h2>
+      <p>
+        The reference implementations from <a href="https://cse135.site/">cse135.site</a>,
+        running here with the greetings customised.
+      </p>
+      <ul>
+        <li><a href="/hw2/perl/perl-hello-html-world.pl">perl-hello-html-world</a></li>
+        <li><a href="/hw2/perl/perl-hello-json-world.pl">perl-hello-json-world</a></li>
+        <li><a href="/hw2/perl/perl-env.pl">perl-env</a></li>
+        <li><a href="/hw2/perl/perl-env-pm.pl">perl-env-pm</a> (uses CGI.pm)</li>
+        <li><a href="/hw2/perl/perl-get-echo.pl">perl-get-echo</a></li>
+        <li><a href="/hw2/perl/perl-post-echo.pl">perl-post-echo</a></li>
+        <li><a href="/hw2/perl/perl-general-echo.pl">perl-general-echo</a></li>
+        <li><a href="/hw2/perl/perl-sessions-1.pl">perl-sessions-1</a></li>
+        <li><a href="/hw2/perl/perl-sessions-2.pl">perl-sessions-2</a></li>
+        <li><a href="/hw2/perl/perl-destroy-session.pl">perl-destroy-session</a></li>
+      </ul>
+    </section>
+
+    <p><a href="/">&larr; Back to the team site</a></p>
+  </main>
+
+  <footer>
+    <p>CSE 135 · HW2 · Diego — UCSD Wrestling Club</p>
+  </footer>
+</body>
+
+</html>

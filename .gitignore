@@ -25,3 +25,8 @@ dist/
 build/
 *.log
 tmp/
+
+# HW2 build artifacts — Go CGI binaries are compiled in CI, not committed
+sites/main/hw2/go/*.cgi
+__pycache__/
+*.pyc
