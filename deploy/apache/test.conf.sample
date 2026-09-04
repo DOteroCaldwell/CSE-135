@@ -1,0 +1,102 @@
+# HW3 Part 2 — test.ucsdwrestlingclub.com
+#
+# This is the LIVE droplet config with the HW3 changes folded in. Every change is
+# marked "HW3:" or "BUGFIX:". Diff it against the server's current file rather than
+# copying it wholesale.
+#
+# Prerequisites:
+#   sudo a2enmod headers usertrack
+#   sudo a2enconf cse135-logformat          # defines the combined_ch nickname
+#
+# READ THIS FIRST — WHERE THE HW3 BLOCKS ACTUALLY GO:
+# Client Hints require a secure context, and this :80 vhost redirects everything to
+# HTTPS, so the Client Hints and usertrack blocks belong in the certbot-generated
+#   /etc/apache2/sites-available/test.ucsdwrestlingclub.com-le-ssl.conf
+# NOT here. They are reproduced at the bottom of this file, ready to paste.
+# Putting them only in the :80 vhost is a no-op — that vhost serves one 301 and
+# nothing else.
+
+<VirtualHost *:80>
+        ServerName test.ucsdwrestlingclub.com
+        ServerAdmin clubwrestling@ucsd.edu
+        DocumentRoot /var/www/test.ucsdwrestlingclub.com
+
+        # HW3: per-vhost logs. These previously wrote to the shared error.log /
+        # access.log, which interleaves all four vhosts into one file — painful to
+        # screenshot for log-verify and painful to parse later. HW1's writeup already
+        # claims per-vhost *_access.log files; this makes that true for the test site.
+        ErrorLog  ${APACHE_LOG_DIR}/test_error.log
+        LogLevel  warn
+        CustomLog ${APACHE_LOG_DIR}/test_access.log combined_ch
+
+        # BUGFIX: the live config reads <Directory "var/www/test.ucsdwrestlingclub.com">
+        # with NO LEADING SLASH. Apache resolves a relative Directory path against
+        # ServerRoot, so that block governs /etc/apache2/var/www/... — a path that does
+        # not exist. The auth never applies and the test site is currently WIDE OPEN,
+        # while `apachectl configtest` reports Syntax OK. Verified locally: relative
+        # path => anonymous GET returns 200; absolute path => 401.
+        <Directory /var/www/test.ucsdwrestlingclub.com>
+                Options -Indexes +FollowSymLinks
+                AllowOverride All
+
+                AuthType     Basic
+                AuthName     "Restricted Content"
+                AuthUserFile /etc/apache2/.htpasswd
+                Require      valid-user
+        </Directory>
+
+        # For most configuration files from conf-available/, which are
+        # enabled or disabled at a global level, it is possible to
+        # include a line for only one particular virtual host. For example the
+        # following line enables the CGI configuration for this host only
+        # after it has been globally disabled with "a2disconf".
+        #Include conf-available/serve-cgi-bin.conf
+
+        RewriteEngine on
+        # BUGFIX: this condition tested =ucsdwrestlingclub.com — the MAIN site's name,
+        # copy-pasted into the test vhost. %{SERVER_NAME} here is test.ucsdwrestlingclub.com
+        # (UseCanonicalName is Off by default, so it comes from the Host: header), the
+        # "=" operator is an exact string match, so the condition never fired and HTTP
+        # was never redirected to HTTPS. Verified locally: Host: test.example.com => 200,
+        # Host: example.com => 301. That also means http:// visitors got no Client Hints,
+        # since hints require a secure context.
+        RewriteCond %{SERVER_NAME} =test.ucsdwrestlingclub.com
+        RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,NE,R=permanent]
+</VirtualHost>
+
+
+# ============================================================================
+# PASTE INTO test.ucsdwrestlingclub.com-le-ssl.conf, inside <VirtualHost *:443>
+# ============================================================================
+# Certbot generated that file by copying the :80 vhost, so it already has the
+# ServerName/DocumentRoot/Directory block — apply the same two BUGFIXes there, add
+# the per-vhost CustomLog, and then add everything below.
+#
+#         # ---- HW3: Client Hints opt-in ----
+#         # Sec-CH-UA, -Mobile and -Platform are low-entropy and arrive unrequested.
+#         # Everything else is high-entropy and withheld until the origin asks here.
+#         Header always set Accept-CH "Sec-CH-UA, Sec-CH-UA-Mobile, Sec-CH-UA-Platform, Sec-CH-UA-Platform-Version, Sec-CH-UA-Arch, Sec-CH-UA-Bitness, Sec-CH-UA-Model, Sec-CH-UA-Full-Version-List, Sec-CH-UA-WoW64, DPR, Viewport-Width, Width, Downlink, ECT, RTT, Save-Data, Sec-CH-Prefers-Color-Scheme, Sec-CH-Prefers-Reduced-Motion"
+#
+#         # Accept-CH only takes effect from the SECOND request onward. Critical-CH
+#         # makes Chromium discard the response and retry immediately with the hints
+#         # attached, so even a first-time visitor's landing request is logged with
+#         # them. Keep the list short — each entry costs a connection restart.
+#         Header always set Critical-CH "Sec-CH-UA-Platform-Version, Sec-CH-UA-Model, Sec-CH-UA-Arch"
+#
+#         # High-entropy hints are origin-scoped. Without this delegation the beacon
+#         # to collector.* would carry none of them.
+#         Header always set Permissions-Policy "ch-ua-platform-version=(self \"https://collector.ucsdwrestlingclub.com\"), ch-ua-arch=(self \"https://collector.ucsdwrestlingclub.com\"), ch-ua-bitness=(self \"https://collector.ucsdwrestlingclub.com\"), ch-ua-model=(self \"https://collector.ucsdwrestlingclub.com\"), ch-ua-full-version-list=(self \"https://collector.ucsdwrestlingclub.com\")"
+#
+#         # ---- HW3: server-minted session id (consumed by collector.js in Part 3) ----
+#         # Apache stamps the cookie on the first response it sends, so there is no
+#         # un-joinable first log line and JS-off visitors stay attributable. The value
+#         # is exposed to the log as the note %{cookie}n, which combined_ch logs as sid=.
+#         # CookieDomain must begin with a dot — that is what makes the cookie visible
+#         # to collector.ucsdwrestlingclub.com too. No CookieExpires => session cookie.
+#         CookieTracking on
+#         CookieName     sid
+#         CookieStyle    Cookie
+#         CookieDomain   .ucsdwrestlingclub.com
+#
+#         ErrorLog  ${APACHE_LOG_DIR}/test_error.log
+#         CustomLog ${APACHE_LOG_DIR}/test_access.log combined_ch

@@ -1,0 +1,40 @@
+# HW3 Part 2 — the enriched log format, defined once at server scope.
+#
+# Install as a globally-enabled conf snippet:
+#   sudo cp cse135-logformat.conf.sample /etc/apache2/conf-available/cse135-logformat.conf
+#   sudo a2enconf cse135-logformat
+#   sudo apachectl configtest && sudo systemctl reload apache2
+#
+# WHY conf-available AND NOT THE VHOST FILE:
+# apache2.conf parses conf-enabled/*.conf BEFORE sites-enabled/*.conf, and within
+# sites-enabled the glob sorts in C order — which puts certbot's
+#   test.ucsdwrestlingclub.com-le-ssl.conf   ('-' is 0x2D)
+# BEFORE
+#   test.ucsdwrestlingclub.com.conf          ('.' is 0x2E)
+#
+# So a LogFormat defined in the base vhost file is NOT yet defined when the SSL
+# vhost that uses it is parsed. That failure is silent and vicious: Apache does not
+# error on an unknown nickname, it treats the nickname as a literal format string,
+# and every access-log line becomes the single word "combined_ch". `apachectl
+# configtest` still prints "Syntax OK". Defining it here avoids the whole trap.
+#
+# COMBINED (Ubuntu's, using %O) + the session id + User-Agent Client Hints.
+# Absent hints log as "-". Hint values are structured-header strings and arrive
+# WITH their own quotes, so they appear escaped: platform="\"macOS\"".
+
+LogFormat "%h %l %u %t \"%r\" %>s %O \"%{Referer}i\" \"%{User-Agent}i\" \
+sid=\"%{cookie}n\" \
+platform=\"%{Sec-CH-UA-Platform}i\" \
+platform_version=\"%{Sec-CH-UA-Platform-Version}i\" \
+arch=\"%{Sec-CH-UA-Arch}i\" \
+bitness=\"%{Sec-CH-UA-Bitness}i\" \
+model=\"%{Sec-CH-UA-Model}i\" \
+mobile=\"%{Sec-CH-UA-Mobile}i\" \
+ua_full=\"%{Sec-CH-UA-Full-Version-List}i\" \
+dpr=\"%{DPR}i\" \
+viewport=\"%{Viewport-Width}i\" \
+ect=\"%{ECT}i\" \
+downlink=\"%{Downlink}i\" \
+rtt=\"%{RTT}i\" \
+save_data=\"%{Save-Data}i\" \
+scheme_pref=\"%{Sec-CH-Prefers-Color-Scheme}i\"" combined_ch

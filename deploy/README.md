@@ -66,6 +66,16 @@ Then locally: `git remote add production <user>@<host>:site.git` and
 
 ## Apache vhost configs
 
-See `deploy/apache/main.conf.sample`. The other three vhosts follow the same
-pattern with their own `ServerName`/`DocumentRoot`. Enable with `a2ensite`, then
-run `certbot` for SSL.
+- `deploy/apache/main.conf.sample` — team site (HW1: 404, Server spoof, deflate)
+- `deploy/apache/hw2-cgi.conf.sample` — CGI blocks pasted into the main vhost
+- `deploy/apache/test.conf.sample` — HW3 test site: Client Hints, `mod_usertrack`
+  session cookie, per-vhost logs, plus two `BUGFIX:`-marked corrections to the live
+  config (relative `<Directory>` path defeating basic auth; certbot redirect naming
+  the wrong host)
+- `deploy/apache/cse135-logformat.conf.sample` — the `combined_ch` log format;
+  installs into `conf-available/`, not a vhost (see the guide for why)
+
+The remaining vhosts follow the same pattern with their own
+`ServerName`/`DocumentRoot`. Enable with `a2ensite`, then run `certbot` for SSL.
+
+Step-by-step droplet walkthroughs live in [`docs/guides/`](../docs/guides/).
