@@ -1,7 +1,8 @@
 name: Deploy to DigitalOcean Droplet
 
 # Deploys each sites/<vhost>/ directory to its matching Apache web root on the
-# droplet via rsync over SSH. Requires these GitHub repository secrets:
+# droplet via rsync over SSH, and src/sql/ to ~/cse135/sql (NOT a web root).
+# Requires these GitHub repository secrets:
 #   DROPLET_HOST   - droplet IP or hostname
 #   DROPLET_USER   - deploy user (must own /var/www/* or use sudo-less rsync)
 #   DROPLET_SSH_KEY- private key whose public half is in that user's authorized_keys
@@ -83,6 +84,24 @@ jobs:
               -e "$SSH" \
               "${src}" "${USER}@${HOST}:${dest}"
           done
+
+      # The SQL schema is deliberately NOT part of any web root — serving your
+      # schema over HTTP would be a disclosure. It syncs into the deploy user's
+      # home directory instead, which needs no extra permissions.
+      #
+      # Applying it stays MANUAL (see docs/guides/hw3-part4-database-setup.md).
+      # Auto-running DDL on every push is how you lose a database.
+      - name: Deploy SQL schema (outside every web root)
+        env:
+          HOST: ${{ secrets.DROPLET_HOST }}
+          USER: ${{ secrets.DROPLET_USER }}
+        run: |
+          set -euo pipefail
+          SSH="ssh -i ~/.ssh/deploy_key"
+          $SSH "${USER}@${HOST}" "mkdir -p ~/cse135/sql"
+          # Relative remote path => resolved against the login user's home dir.
+          rsync -az --delete -e "$SSH" src/sql/ "${USER}@${HOST}:cse135/sql/"
+          $SSH "${USER}@${HOST}" "ls -l ~/cse135/sql"
 
       - name: Reload Apache
         env:

@@ -5,9 +5,9 @@ endpoint at `/log` on the collector vhost.
 
 Repo artifacts:
 
-- [`src/hw3/sql/schema.sql`](../../src/hw3/sql/schema.sql) — the four tables
+- [`src/sql/schema.sql`](../../src/sql/schema.sql) — the four tables (auto-deployed to `~/cse135/sql/`)
 - [`sites/collector/log.php`](../../sites/collector/log.php) — the endpoint
-- [`src/hw3/config/db.ini.example`](../../src/hw3/config/db.ini.example) — credentials template
+- [`src/config/db.ini.example`](../../src/config/db.ini.example) — credentials template
 - [`deploy/apache/collector.conf.sample`](../../deploy/apache/collector.conf.sample) — `/log` rewrite + auth carve-out
 
 Deliverable: **`database-verify.jpg`** — a screenshot of collector data in a table.
@@ -59,12 +59,37 @@ mysql --version
 `schema.sql` creates the database and tables but deliberately creates **no user**,
 so no password is ever committed.
 
+`deploy.yml` syncs `src/sql/` to **`~/cse135/sql/`** on the droplet on every push
+to `main` — the deploy user's home directory, deliberately *not* a web root, since
+serving your schema over HTTP would be a disclosure. The file is already there; you
+only have to apply it.
+
+Applying is manual on purpose: the workflow never runs DDL, because auto-running
+migrations on every push is how you lose a database.
+
+**On the droplet**, after a deploy has run:
+
 ```bash
-mysql -u root -p < /path/to/repo/src/hw3/sql/schema.sql
-mysql -u root -p -e "SHOW TABLES IN cse135;"
+ls -l ~/cse135/sql/                       # confirm the sync landed
+sudo mysql < ~/cse135/sql/schema.sql
+sudo mysql -e "SHOW TABLES IN cse135;"
 ```
 
 Expect `activity`, `performance`, `sessions`, `static`.
+
+Every statement in `schema.sql` is `CREATE ... IF NOT EXISTS`, so it is safe to
+re-run — applying it twice is a no-op rather than an error. That matters from HW4
+on, as the schema grows and you re-apply it.
+
+`sudo mysql` rather than `mysql -u root -p`: on Ubuntu the MySQL `root` account
+authenticates via the `auth_socket` plugin by default, so it has no password and is
+reached by being root rather than by logging in. If you set a root password during
+HW1's `mysql_secure_installation`, use
+`mysql -u root -p < ~/cse135/sql/schema.sql` instead. Check which applies with:
+
+```bash
+sudo mysql -e "SELECT user, host, plugin FROM mysql.user WHERE user='root';"
+```
 
 The app account gets only what the endpoint and the API actually need — no DDL, no
 access to other schemas:
@@ -79,13 +104,23 @@ FLUSH PRIVILEGES;
 
 ## Step 3 — Credentials, outside the repo and outside the docroot
 
+The template is four lines, so rather than copying a file up, just write it on the
+droplet — that also keeps the real password from ever sitting in `/tmp`:
+
 ```bash
 sudo mkdir -p /etc/cse135
-sudo cp /path/to/repo/src/hw3/config/db.ini.example /etc/cse135/db.ini
-sudo nano /etc/cse135/db.ini          # set pass, confirm host/name/user
+sudo tee /etc/cse135/db.ini >/dev/null <<'INI'
+host = 127.0.0.1
+port = 3306
+name = cse135
+user = cse135_app
+pass = the-password-you-set-in-step-2
+INI
 sudo chown root:www-data /etc/cse135/db.ini
 sudo chmod 640 /etc/cse135/db.ini
 ```
+
+(`src/config/db.ini.example` in the repo is the reference copy of that shape.)
 
 `640 root:www-data` means Apache can read it and nothing else can. It lives outside
 every document root, so it is unreachable over HTTP no matter how the vhost is

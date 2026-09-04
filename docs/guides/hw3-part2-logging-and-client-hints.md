@@ -97,11 +97,24 @@ already on from HW1's spoofed `Server` header; `usertrack` almost certainly is n
 
 ## Step 2 — Install the log format at server scope
 
-The `combined_ch` nickname goes in `conf-available`, **not** in the vhost file:
+The `combined_ch` nickname goes in `conf-available`, **not** in the vhost file.
+
+> **The droplet has no copy of this repo.** `deploy.yml` checks out on the GitHub
+> runner and rsyncs only `sites/<vhost>/` into `/var/www/`; `deploy/`, `docs/` and
+> `src/` never reach the server. So config samples have to be copied up by hand.
+
+From your **local machine**, in the repo:
 
 ```bash
-sudo cp /path/to/repo/deploy/apache/cse135-logformat.conf.sample \
-        /etc/apache2/conf-available/cse135-logformat.conf
+scp deploy/apache/cse135-logformat.conf.sample <deploy-user>@<droplet>:/tmp/
+```
+
+Then **on the droplet**:
+
+```bash
+sudo install -o root -g root -m 644 /tmp/cse135-logformat.conf.sample \
+     /etc/apache2/conf-available/cse135-logformat.conf
+rm /tmp/cse135-logformat.conf.sample
 sudo a2enconf cse135-logformat
 sudo apachectl configtest && sudo systemctl reload apache2
 ```
@@ -122,11 +135,21 @@ single word `combined_ch`. If you ever see that in a log, this is why.
 **Do not overwrite either vhost file.** `deploy/apache/test.conf.sample` is the live
 config with the changes folded in and marked `HW3:` / `BUGFIX:`; diff against it.
 
+Copy the sample up first (again, the droplet has no repo checkout) — from your
+**local machine**:
+
+```bash
+scp deploy/apache/test.conf.sample deploy/apache/collector.conf.sample \
+    <deploy-user>@<droplet>:/tmp/
+```
+
+Then **on the droplet**:
+
 ```bash
 cd /etc/apache2/sites-available
 sudo cp test.ucsdwrestlingclub.com.conf{,.pre-hw3.bak}
 sudo cp test.ucsdwrestlingclub.com-le-ssl.conf{,.pre-hw3.bak}
-diff test.ucsdwrestlingclub.com.conf /path/to/repo/deploy/apache/test.conf.sample
+diff test.ucsdwrestlingclub.com.conf /tmp/test.conf.sample
 ```
 
 **In the `:80` vhost** — apply both Step 0 bugfixes and switch to the per-vhost

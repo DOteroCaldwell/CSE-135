@@ -10,13 +10,26 @@ one Apache vhost web root on the droplet:
 | `sites/collector`   | `/var/www/collector.ucsdwrestlingclub.com`    | `collector.ucsdwrestlingclub.com`    |
 | `sites/reporting`   | `/var/www/reporting.ucsdwrestlingclub.com`    | `reporting.ucsdwrestlingclub.com`    |
 
-Specs (`docs/`), this deploy tooling, and READMEs never reach the web root —
-only the contents of each `sites/<vhost>/` are synced.
+One directory is synced to the droplet **without** being a web root:
+
+| Repo dir    | Droplet path         | Why                                          |
+| ----------- | -------------------- | -------------------------------------------- |
+| `src/sql`   | `~/cse135/sql`       | schema/migrations — must never be served      |
+
+`src/sql` holds the database schema for HW3 onward. It goes to the deploy user's
+home directory rather than `/var/www`, because publishing your schema over HTTP is
+a disclosure. Applying it is deliberately manual — see
+[`docs/guides/hw3-part4-database-setup.md`](../docs/guides/hw3-part4-database-setup.md).
+
+Everything else — specs (`docs/`), this deploy tooling, `src/hw2`, READMEs — never
+leaves the GitHub runner. In particular **the droplet has no checkout of this
+repo**, so anything else you need there (vhost config samples) must be copied up by
+hand with `scp`.
 
 ## Primary path: GitHub Actions (`.github/workflows/deploy.yml`)
 
 On every push to `main`, the workflow rsyncs each `sites/<vhost>/` to its web
-root over SSH and reloads Apache.
+root over SSH, syncs `src/sql/` to `~/cse135/sql`, and reloads Apache.
 
 **One-time setup:**
 
