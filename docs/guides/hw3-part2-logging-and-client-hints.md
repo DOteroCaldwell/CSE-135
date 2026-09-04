@@ -254,13 +254,28 @@ Part 4's `collector.conf.sample` will contain it; the shape is:
 <Files "collector.js">
     Require all granted
 </Files>
-<Files "nojs.gif">
+<Files "px.gif">
+    Require all granted
+</Files>
+<Files "log.php">
     Require all granted
 </Files>
 <Location "/log">
     Require all granted
 </Location>
 ```
+
+`px.gif` is one file serving two probes, distinguished by query string:
+`?probe=nojs` from the `<noscript>` tag, `?probe=img` from the image-support check.
+`<Files>` matches on filename only, so the query string is irrelevant to the match.
+
+**Both `<Files "log.php">` and `<Location "/log">` are needed.** Part 4 rewrites
+`/log` to `log.php`, and `<Location>` is matched against the URI *after* rewriting —
+so once that rewrite exists, `<Location "/log">` no longer matches and the request
+falls back to the `<Directory>` block's `Require valid-user`. Verified: with only
+the `<Location>`, an anonymous `POST /log` returns **401**; adding `<Files
+"log.php">` returns **200**. The `<Location>` still earns its place for the
+pre-rewrite case.
 
 The vhost's `index.html` stays protected, so the "all vhosts are password
 protected" claim from HW1 still holds for everything except the three endpoints

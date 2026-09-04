@@ -1,0 +1,79 @@
+# HW3 — collector.ucsdwrestlingclub.com (:443)
+#
+# This mirrors the live -le-ssl.conf. The part that matters is the auth carve-out:
+# HW1 put `Require valid-user` over all four vhosts, and on this vhost that breaks
+# the entire pipeline. The collection surface has to be anonymous.
+#
+# WHY IT CANNOT BE BEHIND AUTH:
+#   * <script src="https://collector.../collector.js"> gets a 401, and browsers do
+#     not prompt for credentials on a cross-origin subresource — Chrome suppresses
+#     those prompts deliberately. The script silently never loads and nothing is
+#     collected at all.
+#   * navigator.sendBeacon() cannot carry an Authorization header and cannot
+#     prompt. Every beacon to /log 401s and the payload is dropped.
+# Neither is fixable from JavaScript.
+#
+# Verified anonymously against Apache 2.4 with exactly the blocks below:
+#   GET  /collector.js  -> 200      GET /            -> 401
+#   GET  /px.gif        -> 200      GET /index.html  -> 401 (200 with credentials)
+#   POST /log           -> 200
+#   POST /log.php       -> 200
+
+<IfModule mod_ssl.c>
+<VirtualHost *:443>
+    ServerName collector.ucsdwrestlingclub.com
+    ServerAdmin clubwrestling@ucsd.edu
+    DocumentRoot /var/www/collector.ucsdwrestlingclub.com
+
+    ErrorLog  ${APACHE_LOG_DIR}/collector_error.log
+    LogLevel  warn
+    # combined_ch is defined in conf-available/cse135-logformat.conf. Logging the
+    # sid here too means the collector's own requests can be lined up against the
+    # test vhost's log for the same session.
+    CustomLog ${APACHE_LOG_DIR}/collector_access.log combined_ch
+
+    <Directory "/var/www/collector.ucsdwrestlingclub.com">
+        Options -Indexes +FollowSymLinks
+        AllowOverride All
+
+        AuthType     Basic
+        AuthName     "Restricted Content"
+        AuthUserFile /etc/apache2/.htpasswd
+        Require      valid-user
+    </Directory>
+
+    # ---- the public collection surface (narrowed exceptions to HW1's auth) ----
+    # Everything else on this vhost, including index.html, stays protected.
+
+    <Files "collector.js">
+        Require all granted
+    </Files>
+
+    # One pixel, two probes, told apart by query string: ?probe=nojs from the
+    # <noscript> tag on each test page, ?probe=img from the image-support check.
+    # <Files> matches the filename only, so the query string does not affect it.
+    <Files "px.gif">
+        Require all granted
+    </Files>
+
+    # BOTH of the next two blocks are required.
+    # <Location> is matched against the URI *after* mod_rewrite runs, so once
+    # /log is rewritten to log.php the <Location "/log"> below stops matching and
+    # the request falls back to the <Directory> block's Require valid-user.
+    # Verified: <Location> alone => anonymous POST /log returns 401.
+    <Files "log.php">
+        Require all granted
+    </Files>
+    <Location "/log">
+        Require all granted
+    </Location>
+
+    # Pretty endpoint for the beacon. collector.js POSTs to /log.
+    RewriteEngine on
+    RewriteRule ^/log$ /log.php [PT]
+
+    Include /etc/letsencrypt/options-ssl-apache.conf
+    SSLCertificateFile    /etc/letsencrypt/live/ucsdwrestlingclub.com/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/ucsdwrestlingclub.com/privkey.pem
+</VirtualHost>
+</IfModule>

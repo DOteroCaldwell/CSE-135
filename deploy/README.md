@@ -74,6 +74,8 @@ Then locally: `git remote add production <user>@<host>:site.git` and
   the wrong host)
 - `deploy/apache/cse135-logformat.conf.sample` — the `combined_ch` log format;
   installs into `conf-available/`, not a vhost (see the guide for why)
+- `deploy/apache/collector.conf.sample` — HW3 collector vhost; narrows HW1's basic
+  auth so `collector.js`, `px.gif` and `/log` are reachable anonymously
 
 The remaining vhosts follow the same pattern with their own
 `ServerName`/`DocumentRoot`. Enable with `a2ensite`, then run `certbot` for SSL.
