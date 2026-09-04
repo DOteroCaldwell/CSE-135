@@ -30,3 +30,6 @@ tmp/
 sites/main/hw2/go/*.cgi
 __pycache__/
 *.pyc
+
+# DB credentials — only the .example template is tracked
+db.ini

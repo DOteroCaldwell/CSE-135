@@ -1,0 +1,18 @@
+; CSE 135 — database credentials.
+;
+; Deploy to /etc/cse135/db.ini on the droplet. NOT in the repo and NOT under any
+; document root:
+;
+;   sudo mkdir -p /etc/cse135
+;   sudo cp db.ini.example /etc/cse135/db.ini   # then edit the password
+;   sudo chown root:www-data /etc/cse135/db.ini
+;   sudo chmod 640 /etc/cse135/db.ini
+;
+; 640 root:www-data => Apache (www-data) can read it, nobody else can, and it is
+; never reachable over HTTP.
+
+host = 127.0.0.1
+port = 3306
+name = cse135
+user = cse135_app
+pass = CHANGE_ME
