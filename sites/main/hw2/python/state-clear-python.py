@@ -24,7 +24,7 @@ if c.method() == "POST":
 else:
     c.page_top("State: Clear — Python", extra_headers=headers)
     sys.stdout.write(
-        '    <form method="post" action="state-clear-python-diego.py">\n'
+        '    <form method="post" action="state-clear-python.py">\n'
         '      <input type="hidden" name="csrf" value="%s">\n'
         "      <p>This clears everything stored in the current server-side "
         "session.</p>\n"
@@ -34,8 +34,8 @@ else:
 
 sys.stdout.write(
     "    <ul>\n"
-    '      <li><a href="state-python-diego.py">Back to the save screen</a></li>\n'
-    '      <li><a href="state-view-python-diego.py">View saved data</a></li>\n'
+    '      <li><a href="state-python.py">Back to the save screen</a></li>\n'
+    '      <li><a href="state-view-python.py">View saved data</a></li>\n'
     "    </ul>\n"
 )
 c.page_bottom()

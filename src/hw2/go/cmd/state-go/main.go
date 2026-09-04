@@ -17,7 +17,7 @@ const content = `{{if .Saved}}    <p class="note">Saved to the server-side sessi
       your browser receives only an opaque session ID in the
       <code>HW2GOSESS</code> cookie.</p>
 
-    <form method="post" action="state-go-diego.cgi">
+    <form method="post" action="state-go.cgi">
       <input type="hidden" name="csrf" value="{{.CSRF}}">
 {{range .Fields}}      <div class="field-row">
         <label for="{{.Key}}">{{.Value}}</label>
@@ -28,8 +28,8 @@ const content = `{{if .Saved}}    <p class="note">Saved to the server-side sessi
 
     <h2>Other screens</h2>
     <ul>
-      <li><a href="state-view-go-diego.cgi">View saved data</a></li>
-      <li><a href="state-clear-go-diego.cgi">Clear saved data</a></li>
+      <li><a href="state-view-go.cgi">View saved data</a></li>
+      <li><a href="state-clear-go.cgi">Clear saved data</a></li>
     </ul>
     <p class="note">Session ID: <code>{{.ShortID}}…</code> (truncated)</p>
 `
@@ -65,7 +65,7 @@ func main() {
 			s.Data["savedAt"] = hw2lib.NowISO()
 			s.Save()
 			// POST/redirect/GET so a refresh does not resubmit.
-			http.Redirect(w, r, "state-go-diego.cgi?saved=1", http.StatusSeeOther)
+			http.Redirect(w, r, "state-go.cgi?saved=1", http.StatusSeeOther)
 			return
 		}
 

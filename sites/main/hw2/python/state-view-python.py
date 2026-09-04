@@ -19,8 +19,8 @@ sys.stdout.write(
     '    <p class="note">This page never received the values in the request — '
     "it looked them up server-side from the session ID in the cookie.</p>\n"
     "    <ul>\n"
-    '      <li><a href="state-python-diego.py">Back to the save screen</a></li>\n'
-    '      <li><a href="state-clear-python-diego.py">Clear saved data</a></li>\n'
+    '      <li><a href="state-python.py">Back to the save screen</a></li>\n'
+    '      <li><a href="state-clear-python.py">Clear saved data</a></li>\n'
     "    </ul>\n"
 )
 c.page_bottom()

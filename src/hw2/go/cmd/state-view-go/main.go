@@ -15,8 +15,8 @@ const content = `{{if .Empty}}    <p>Nothing is saved in this session yet.</p>
       it looked them up server-side from the session ID in the cookie.</p>
 
     <ul>
-      <li><a href="state-go-diego.cgi">Back to the save screen</a></li>
-      <li><a href="state-clear-go-diego.cgi">Clear saved data</a></li>
+      <li><a href="state-go.cgi">Back to the save screen</a></li>
+      <li><a href="state-clear-go.cgi">Clear saved data</a></li>
     </ul>
 `
 

@@ -11,15 +11,15 @@ import (
 )
 
 const content = `{{if .Cleared}}    <p class="note">Session destroyed. The server-side file is gone and the cookie is expired.</p>
-{{else}}    <form method="post" action="state-clear-go-diego.cgi">
+{{else}}    <form method="post" action="state-clear-go.cgi">
       <input type="hidden" name="csrf" value="{{.CSRF}}">
       <p>This clears everything stored in the current server-side session.</p>
       <button type="submit">Clear session</button>
     </form>
 {{end}}
     <ul>
-      <li><a href="state-go-diego.cgi">Back to the save screen</a></li>
-      <li><a href="state-view-go-diego.cgi">View saved data</a></li>
+      <li><a href="state-go.cgi">Back to the save screen</a></li>
+      <li><a href="state-view-go.cgi">View saved data</a></li>
     </ul>
 `
 

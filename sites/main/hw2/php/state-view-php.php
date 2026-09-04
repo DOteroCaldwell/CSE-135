@@ -18,8 +18,8 @@ if ($saved === []) {
     </p>
 
     <ul>
-      <li><a href="state-php-diego.php">Back to the save screen</a></li>
-      <li><a href="state-clear-php-diego.php">Clear saved data</a></li>
+      <li><a href="state-php.php">Back to the save screen</a></li>
+      <li><a href="state-clear-php.php">Clear saved data</a></li>
     </ul>
 <?php
 page_bottom();

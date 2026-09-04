@@ -27,7 +27,7 @@ page_top('State: Clear — PHP');
 <?php if ($cleared): ?>
     <p class="note">Session destroyed. The server-side file is gone and the cookie is expired.</p>
 <?php else: ?>
-    <form method="post" action="state-clear-php-diego.php">
+    <form method="post" action="state-clear-php.php">
       <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
       <p>This clears everything stored in the current server-side session.</p>
       <button type="submit">Clear session</button>
@@ -35,8 +35,8 @@ page_top('State: Clear — PHP');
 <?php endif; ?>
 
     <ul>
-      <li><a href="state-php-diego.php">Back to the save screen</a></li>
-      <li><a href="state-view-php-diego.php">View saved data</a></li>
+      <li><a href="state-php.php">Back to the save screen</a></li>
+      <li><a href="state-view-php.php">View saved data</a></li>
     </ul>
 <?php
 page_bottom();

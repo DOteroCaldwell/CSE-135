@@ -11,7 +11,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         'savedAt'   => now_iso(),
     ];
     // POST/redirect/GET so a refresh does not resubmit the form.
-    header('Location: state-php-diego.php?saved=1', true, 303);
+    header('Location: state-php.php?saved=1', true, 303);
     exit;
 }
 
@@ -29,7 +29,7 @@ page_top('State: Save — PHP');
       <code>HW2PHPSESS</code> cookie.
     </p>
 
-    <form method="post" action="state-php-diego.php">
+    <form method="post" action="state-php.php">
       <input type="hidden" name="csrf" value="<?= h(csrf_token()) ?>">
       <div class="field-row">
         <label for="nickname">Nickname</label>
@@ -48,8 +48,8 @@ page_top('State: Save — PHP');
 
     <h2>Other screens</h2>
     <ul>
-      <li><a href="state-view-php-diego.php">View saved data</a></li>
-      <li><a href="state-clear-php-diego.php">Clear saved data</a></li>
+      <li><a href="state-view-php.php">View saved data</a></li>
+      <li><a href="state-clear-php.php">Clear saved data</a></li>
     </ul>
 
     <p class="note">Session ID: <code><?= h(substr(session_id(), 0, 8)) ?>…</code> (truncated)</p>

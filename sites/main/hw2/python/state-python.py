@@ -26,7 +26,7 @@ if c.method() == "POST":
     }
     c.save_session(sid, session)
     # POST/redirect/GET so a refresh does not resubmit.
-    c.redirect("state-python-diego.py?saved=1", extra_headers=headers)
+    c.redirect("state-python.py?saved=1", extra_headers=headers)
     sys.exit(0)
 
 saved = session.get("data", {})
@@ -41,7 +41,7 @@ sys.stdout.write(
     "    <p>Enter something below. It is stored in a JSON file on the server; "
     "your browser receives only an opaque session ID in the "
     "<code>HW2PYSESS</code> cookie.</p>\n"
-    '    <form method="post" action="state-python-diego.py">\n'
+    '    <form method="post" action="state-python.py">\n'
     '      <input type="hidden" name="csrf" value="%s">\n' % c.h(token)
 )
 for field, label in (("nickname", "Nickname"), ("weight", "Weight class"), ("note", "Note")):
@@ -56,8 +56,8 @@ sys.stdout.write(
     "    </form>\n"
     "    <h2>Other screens</h2>\n"
     "    <ul>\n"
-    '      <li><a href="state-view-python-diego.py">View saved data</a></li>\n'
-    '      <li><a href="state-clear-python-diego.py">Clear saved data</a></li>\n'
+    '      <li><a href="state-view-python.py">View saved data</a></li>\n'
+    '      <li><a href="state-clear-python.py">Clear saved data</a></li>\n'
     "    </ul>\n"
     '    <p class="note">Session ID: <code>%s…</code> (truncated)</p>\n' % c.h(sid[:8])
 )
