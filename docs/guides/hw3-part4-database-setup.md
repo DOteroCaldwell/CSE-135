@@ -129,12 +129,26 @@ configured.
 ## Step 4 — PHP on the collector vhost
 
 `.php` handling is normally global via `conf-enabled/php*-fpm.conf`, so nothing
-vhost-specific is needed. Confirm the driver is present — `pdo_mysql` is a separate
-package from PHP itself and its absence is the most common failure here:
+vhost-specific is needed. What does bite is missing extensions — on Ubuntu these
+ship as separate packages from PHP itself, and their absence is the most common
+cause of a 500 here:
 
 ```bash
-php -m | grep -i pdo_mysql || sudo apt install php-mysql
-sudo systemctl reload apache2
+php -m | grep -iE 'pdo_mysql|mbstring'
+# expect BOTH. If either is missing:
+sudo apt install php-mysql php-mbstring
+sudo systemctl restart php*-fpm && sudo systemctl reload apache2
+```
+
+`pdo_mysql` is what talks to the database. `mbstring` is optional — `log.php`
+falls back to a byte-wise truncation that still refuses to split a UTF-8
+character — but installing it is preferable.
+
+Confirm PHP is actually executing on this vhost at all before going further:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' https://collector.ucsdwrestlingclub.com/log
+# 405 = PHP ran and rejected the GET. 200 with PHP source = .php is not handled.
 ```
 
 ## Step 5 — Deploy and wire up `/log`
@@ -214,6 +228,9 @@ sudo tail -f /var/log/apache2/collector_error.log
 | `401` on `/log` | auth carve-out missing; needs `<Files "log.php">`, not just `<Location "/log">` |
 | `500`, log says `cannot read /etc/cse135/db.ini` | wrong path, or not readable by `www-data` |
 | `500`, log says `db connect failed` | wrong host/password, or `php-mysql` not installed |
+| `500`, log says `uncaught Error: Call to undefined function` | a PHP extension is missing — install `php-mbstring` |
+| `500`, log says `insert failed` + `Base table ... doesn't exist` | `schema.sql` has not been applied (Step 2) |
+| `500`, log says `Access denied for user` | the `cse135_app` grant or the password in `db.ini` is wrong |
 | `400 no session id` | the `sid` cookie is missing — check `mod_usertrack` on the *test* vhost |
 | `204` but no rows | check `sid_source`; `client-nocookie` means cookies are being blocked |
 | Rows appear with `sid_source='client'` | `mod_usertrack` is not stamping; the collector fell back to a minted UUID |

@@ -21,6 +21,35 @@ const CONFIG_PATH = '/etc/cse135/db.ini';
 const MAX_BODY    = 1048576; // 1 MB
 const VALID_TYPES = ['static', 'performance', 'activity'];
 
+/* --------------------------------------------------- last-resort reporting -- */
+
+/*
+ * Without these, a fatal (a missing extension, say) returns a bare 500 with
+ * nothing identifiable in the error log, which is painful to diagnose remotely.
+ */
+set_exception_handler(static function (Throwable $e): void {
+    error_log('[cse135/log] uncaught ' . get_class($e) . ': ' . $e->getMessage()
+        . ' at ' . $e->getFile() . ':' . $e->getLine());
+    if (!headers_sent()) {
+        http_response_code(500);
+    }
+});
+
+register_shutdown_function(static function (): void {
+    $err = error_get_last();
+    if ($err === null) {
+        return;
+    }
+    $fatal = E_ERROR | E_PARSE | E_CORE_ERROR | E_COMPILE_ERROR | E_USER_ERROR;
+    if (($err['type'] & $fatal) !== 0) {
+        error_log('[cse135/log] fatal: ' . $err['message']
+            . ' at ' . $err['file'] . ':' . $err['line']);
+        if (!headers_sent()) {
+            http_response_code(500);
+        }
+    }
+});
+
 /* ------------------------------------------------------------------- CORS -- */
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
@@ -85,13 +114,32 @@ function db(): PDO
     return $pdo;
 }
 
-/** Truncate to a column width without splitting a multibyte character. */
-function clip(?string $s, int $max): ?string
+/**
+ * Truncate to a column width without splitting a multibyte character.
+ *
+ * mbstring is a separate package on Ubuntu (php-mbstring) and is not always
+ * installed, so fall back to a byte-wise trim that still refuses to leave a
+ * half-written UTF-8 sequence behind. Takes mixed because a malformed payload
+ * should be ignored, not fatal.
+ */
+function clip(mixed $s, int $max): ?string
 {
-    if ($s === null) {
+    if ($s === null || !is_scalar($s)) {
         return null;
     }
-    return mb_substr($s, 0, $max);
+    $s = (string) $s;
+    if (function_exists('mb_substr')) {
+        return mb_substr($s, 0, $max);
+    }
+    if (strlen($s) <= $max) {
+        return $s;
+    }
+    $cut = substr($s, 0, $max);
+    // drop a trailing partial multibyte sequence
+    while ($cut !== '' && (ord($cut[strlen($cut) - 1]) & 0xC0) === 0x80) {
+        $cut = substr($cut, 0, -1);
+    }
+    return rtrim($cut, "\xC0..\xFF");
 }
 
 function asBool(mixed $v): ?int
