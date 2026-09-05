@@ -1,12 +1,11 @@
 ; CSE 135 — database credentials.
 ;
-; Deploy to /etc/cse135/db.ini on the droplet. NOT in the repo and NOT under any
-; document root:
+; Reference copy of the shape only. The real file lives at /etc/cse135/db.ini on
+; the droplet — NOT in the repo and NOT under any document root.
 ;
-;   sudo mkdir -p /etc/cse135
-;   sudo cp db.ini.example /etc/cse135/db.ini   # then edit the password
-;   sudo chown root:www-data /etc/cse135/db.ini
-;   sudo chmod 640 /etc/cse135/db.ini
+; This file is never deployed (deploy.yml syncs only sites/ and src/sql/), so
+; write the real one directly on the droplet rather than copying it up; that also
+; keeps the password out of /tmp. See docs/guides/hw3-part4-database-setup.md.
 ;
 ; 640 root:www-data => Apache (www-data) can read it, nobody else can, and it is
 ; never reachable over HTTP.
