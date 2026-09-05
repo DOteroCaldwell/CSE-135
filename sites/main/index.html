@@ -8,20 +8,20 @@
   <link rel="icon" href="/favicon.ico" />
   <link rel="stylesheet" href="/css/style.css" />
   <title>CSE 135 — Team Site</title>
+
+  <!-- Google tag (gtag.js) - A hw2 requirement -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-YD0K1RTH8F"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-YD0K1RTH8F');
+  </script>
+  <script src="https://cdn.logr-in.com/LogRocket.min.js" crossorigin="anonymous"></script>
+  <script>window.LogRocket && window.LogRocket.init('g4nkkp/cse135');</script>
+  <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "dbe62926f70a4d8b9bf3301390ef5111"}'></script><!-- End Cloudflare Web Analytics -->
 </head>
-
-<!-- Google tag (gtag.js) - A hw2 requirement -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-YD0K1RTH8F"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-YD0K1RTH8F');
-</script>
-<script src="https://cdn.logr-in.com/LogRocket.min.js" crossorigin="anonymous"></script>
-<script>window.LogRocket && window.LogRocket.init('g4nkkp/cse135');</script>
-<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "dbe62926f70a4d8b9bf3301390ef5111"}'></script><!-- End Cloudflare Web Analytics -->
 
 <body>
   <header>
@@ -90,6 +90,32 @@
                 <li><a href="/hw2/perl/perl-hello-json-world.pl">perl-hello-json-world</a></li>
                 <li><a href="/hw2/perl/perl-env.pl">perl-env</a></li>
                 <li><a href="/hw2/perl/perl-general-echo.pl">perl-general-echo</a></li>
+              </ul>
+            </li>
+          </ul>
+        </li>
+        <li>
+          HW3 — Data Collection, Storage &amp; REST Endpoints
+          <ul>
+            <li>
+              <a href="https://test.ucsdwrestlingclub.com/">Test site</a> —
+              the instrumented &ldquo;Wrecked Tech&rdquo; target site
+            </li>
+            <li>
+              <a href="https://collector.ucsdwrestlingclub.com/collector.js">collector.js</a>
+              — the analytics collector (static, performance, activity)
+            </li>
+            <li>
+              <a href="https://reporting.ucsdwrestlingclub.com/api-test.html">REST API test console</a>
+              — exercises every verb against the live API
+            </li>
+            <li>
+              REST API collections
+              <ul>
+                <li><a href="https://reporting.ucsdwrestlingclub.com/api/sessions">/api/sessions</a></li>
+                <li><a href="https://reporting.ucsdwrestlingclub.com/api/static">/api/static</a></li>
+                <li><a href="https://reporting.ucsdwrestlingclub.com/api/performance">/api/performance</a></li>
+                <li><a href="https://reporting.ucsdwrestlingclub.com/api/activity">/api/activity</a></li>
               </ul>
             </li>
           </ul>

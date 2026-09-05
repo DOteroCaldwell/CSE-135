@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSE 135 — REST API Test Console</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+           margin: 0 auto; max-width: 1100px; padding: 1.5rem; line-height: 1.5; }
+    h1 { margin-bottom: .25rem; }
+    .sub { color: #666; margin-top: 0; }
+    fieldset { border: 1px solid #bbb; border-radius: 6px; margin: 1rem 0; padding: 1rem; }
+    legend { font-weight: 600; padding: 0 .4rem; }
+    button { font: inherit; padding: .35rem .7rem; margin: .15rem .2rem .15rem 0;
+             border: 1px solid #888; border-radius: 4px; background: #f4f4f4; cursor: pointer; }
+    button:hover { background: #e8e8e8; }
+    label { margin-right: .75rem; }
+    .status { font-weight: 700; padding: .1rem .5rem; border-radius: 4px; color: #fff; }
+    .s2 { background: #1a7f37; } .s4 { background: #b35900; } .s5 { background: #b3001b; }
+    table { border-collapse: collapse; width: 100%; margin-top: .75rem; font-size: .85rem; }
+    th, td { border: 1px solid #ccc; padding: .3rem .5rem; text-align: left;
+             max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    th { background: #eee; position: sticky; top: 0; }
+    .scroll { overflow-x: auto; max-height: 460px; overflow-y: auto; }
+    pre { background: #f6f6f6; border: 1px solid #ddd; border-radius: 4px;
+          padding: .6rem; overflow-x: auto; max-height: 260px; font-size: .8rem; }
+    code { background: #f0f0f0; padding: .1rem .3rem; border-radius: 3px; }
+  </style>
+</head>
+
+<body>
+  <h1>REST API Test Console</h1>
+  <p class="sub">CSE 135 HW3 Part 5 — <code>reporting.ucsdwrestlingclub.com/api</code></p>
+
+  <noscript>
+    <p><strong>JavaScript is disabled.</strong> The API is still browsable directly:
+      <a href="/api/sessions">/api/sessions</a>, <a href="/api/static">/api/static</a>,
+      <a href="/api/performance">/api/performance</a>, <a href="/api/activity">/api/activity</a>.</p>
+  </noscript>
+
+  <fieldset>
+    <legend>Resource</legend>
+    <label><input type="radio" name="res" value="sessions" checked> sessions</label>
+    <label><input type="radio" name="res" value="static"> static</label>
+    <label><input type="radio" name="res" value="performance"> performance</label>
+    <label><input type="radio" name="res" value="activity"> activity</label>
+  </fieldset>
+
+  <fieldset>
+    <legend>Requests</legend>
+    <button type="button" id="getAll">GET collection</button>
+    <button type="button" id="getOne">GET /{id} (first row)</button>
+    <button type="button" id="post">POST (no id)</button>
+    <button type="button" id="put">PUT /{id}</button>
+    <button type="button" id="del">DELETE /{id}</button>
+    <button type="button" id="badPost">POST /{id} &rarr; expect 405</button>
+    <button type="button" id="badPut">PUT no id &rarr; expect 405</button>
+    <button type="button" id="notFound">GET /999999 &rarr; expect 404</button>
+  </fieldset>
+
+  <p id="line">Ready.</p>
+  <div class="scroll"><table id="grid"><thead></thead><tbody></tbody></table></div>
+  <h2>Raw response</h2>
+  <pre id="raw">—</pre>
+
+  <script>
+    (function () {
+      'use strict';
+      var line = document.getElementById('line');
+      var raw = document.getElementById('raw');
+      var grid = document.getElementById('grid');
+      var lastId = null;
+
+      function resource() {
+        return document.querySelector('input[name="res"]:checked').value;
+      }
+
+      function show(method, url, status, text) {
+        var cls = status >= 500 ? 's5' : status >= 400 ? 's4' : 's2';
+        line.innerHTML = '';
+        var badge = document.createElement('span');
+        badge.className = 'status ' + cls;
+        badge.textContent = status;
+        line.appendChild(badge);
+        line.appendChild(document.createTextNode(' ' + method + ' ' + url));
+        var body;
+        try { body = JSON.parse(text); } catch (e) { body = text; }
+        raw.textContent = typeof body === 'string'
+          ? body : JSON.stringify(body, null, 2);
+        render(body && body.data);
+        return body;
+      }
+
+      function render(data) {
+        var head = grid.tHead, tb = grid.tBodies[0];
+        head.innerHTML = ''; tb.innerHTML = '';
+        var rows = Array.isArray(data) ? data : (data ? [data] : []);
+        if (!rows.length) { return; }
+        var cols = Object.keys(rows[0]);
+        var hr = head.insertRow();
+        cols.forEach(function (c) {
+          var th = document.createElement('th');
+          th.textContent = c; hr.appendChild(th);
+        });
+        rows.forEach(function (r) {
+          var tr = tb.insertRow();
+          cols.forEach(function (c) {
+            var td = tr.insertCell();
+            var v = r[c];
+            td.textContent = v === null ? '—'
+              : (typeof v === 'object' ? JSON.stringify(v) : String(v));
+            td.title = td.textContent;
+          });
+        });
+      }
+
+      function call(method, path, body) {
+        var url = '/api/' + path;
+        var opts = { method: method, headers: { 'Accept': 'application/json' } };
+        if (body !== undefined) {
+          opts.headers['Content-Type'] = 'application/json';
+          opts.body = JSON.stringify(body);
+        }
+        line.textContent = method + ' ' + url + ' …';
+        return fetch(url, opts).then(function (res) {
+          return res.text().then(function (t) { return show(method, url, res.status, t); });
+        })['catch'](function (e) {
+          line.textContent = 'network error: ' + e.message;
+        });
+      }
+
+      function withFirstId(fn) {
+        return fetch('/api/' + resource() + '?limit=1')
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            var row = j.data && j.data[0];
+            if (!row) { line.textContent = 'No rows yet — POST one first.'; return; }
+            lastId = row.session_id !== undefined && resource() === 'sessions'
+              ? row.session_id : row.id;
+            return fn(lastId);
+          });
+      }
+
+      // A POST body that satisfies each resource's required fields.
+      function sample() {
+        var r = resource();
+        var sid = 'apitest-' + Date.now();
+        if (r === 'sessions')    { return { session_id: sid, sid_source: 'client', entry_page: '/api-test.html' }; }
+        if (r === 'static')      { return { session_id: lastId, page: '/api-test.html', language: 'en-US' }; }
+        if (r === 'performance') { return { session_id: lastId, page: '/api-test.html', total_load_ms: 123 }; }
+        return { session_id: lastId, event_type: 'click', pos_x: 1, pos_y: 2 };
+      }
+
+      document.getElementById('getAll').onclick = function () { call('GET', resource()); };
+      document.getElementById('getOne').onclick = function () {
+        withFirstId(function (id) { return call('GET', resource() + '/' + id); });
+      };
+      document.getElementById('post').onclick = function () {
+        if (resource() === 'sessions') { return call('POST', 'sessions', sample()); }
+        // child rows need an existing session to reference
+        withFirstId(function () { return call('POST', resource(), sample()); });
+      };
+      document.getElementById('put').onclick = function () {
+        withFirstId(function (id) {
+          var r = resource();
+          var patch = r === 'sessions' ? { entry_page: '/updated-' + Date.now() }
+                    : r === 'activity' ? { event_type: 'updated' }
+                    : { page: '/updated-' + Date.now() };
+          return call('PUT', r + '/' + id, patch);
+        });
+      };
+      document.getElementById('del').onclick = function () {
+        withFirstId(function (id) { return call('DELETE', resource() + '/' + id); });
+      };
+      document.getElementById('badPost').onclick = function () {
+        withFirstId(function (id) { return call('POST', resource() + '/' + id, {}); });
+      };
+      document.getElementById('badPut').onclick = function () { call('PUT', resource(), {}); };
+      document.getElementById('notFound').onclick = function () { call('GET', resource() + '/999999'); };
+
+      call('GET', 'sessions');
+    })();
+  </script>
+</body>
+
+</html>

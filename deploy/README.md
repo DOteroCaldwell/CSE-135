@@ -89,6 +89,8 @@ Then locally: `git remote add production <user>@<host>:site.git` and
   installs into `conf-available/`, not a vhost (see the guide for why)
 - `deploy/apache/collector.conf.sample` — HW3 collector vhost; narrows HW1's basic
   auth so `collector.js`, `px.gif` and `/log` are reachable anonymously
+- `deploy/apache/reporting.conf.sample` — HW3 reporting vhost; `/api` front-controller
+  rewrite, basic auth left on everything
 
 The remaining vhosts follow the same pattern with their own
 `ServerName`/`DocumentRoot`. Enable with `a2ensite`, then run `certbot` for SSL.
