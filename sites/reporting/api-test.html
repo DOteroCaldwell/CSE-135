@@ -37,7 +37,8 @@
   <noscript>
     <p><strong>JavaScript is disabled.</strong> The API is still browsable directly:
       <a href="/api/sessions">/api/sessions</a>, <a href="/api/static">/api/static</a>,
-      <a href="/api/performance">/api/performance</a>, <a href="/api/activity">/api/activity</a>.</p>
+      <a href="/api/performance">/api/performance</a>, <a href="/api/activity">/api/activity</a>,
+      <a href="/api/resources">/api/resources</a>.</p>
   </noscript>
 
   <fieldset>
@@ -46,6 +47,7 @@
     <label><input type="radio" name="res" value="static"> static</label>
     <label><input type="radio" name="res" value="performance"> performance</label>
     <label><input type="radio" name="res" value="activity"> activity</label>
+    <label><input type="radio" name="res" value="resources"> resources</label>
   </fieldset>
 
   <fieldset>
@@ -150,6 +152,9 @@
         if (r === 'sessions')    { return { session_id: sid, sid_source: 'client', entry_page: '/api-test.html' }; }
         if (r === 'static')      { return { session_id: lastId, page: '/api-test.html', language: 'en-US' }; }
         if (r === 'performance') { return { session_id: lastId, page: '/api-test.html', total_load_ms: 123 }; }
+        if (r === 'resources')   { return { session_id: lastId, page: '/api-test.html',
+                                            name: 'https://example.test/a.png', initiator_type: 'img',
+                                            transfer_size: 2048 }; }
         return { session_id: lastId, event_type: 'click', pos_x: 1, pos_y: 2 };
       }
 
@@ -167,6 +172,7 @@
           var r = resource();
           var patch = r === 'sessions' ? { entry_page: '/updated-' + Date.now() }
                     : r === 'activity' ? { event_type: 'updated' }
+                    : r === 'resources' ? { initiator_type: 'script' }
                     : { page: '/updated-' + Date.now() };
           return call('PUT', r + '/' + id, patch);
         });

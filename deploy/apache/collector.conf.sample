@@ -72,6 +72,27 @@
     RewriteEngine on
     RewriteRule ^/log$ /log.php [PT]
 
+    # ---- HW4: make collector.js measurable from the pages that load it ----
+    #
+    # PerformanceResourceTiming zeroes transferSize and every timing detail for a
+    # cross-origin resource unless the SERVING origin opts in with
+    # Timing-Allow-Origin. collector.js is served from here and executed on
+    # test.ucsdwrestlingclub.com, so without this header it reports 0 bytes and 0 ms
+    # in its own resource-weight report.
+    #
+    # That would be a self-serving blind spot: collector.js is a synchronous,
+    # render-blocking <script> in the <head> of every instrumented page, so it is a
+    # real candidate answer to "what should we fix". A performance report that
+    # cannot see its own collector is not measuring the page, it is measuring the
+    # page minus the inconvenient part.
+    #
+    # Scoped to the script itself. The /log endpoint and px.gif are deliberately
+    # NOT opted in — they are instrumentation side-effects rather than page weight,
+    # and collector.js filters them out of its own reporting for the same reason.
+    <Files "collector.js">
+        Header set Timing-Allow-Origin "https://test.ucsdwrestlingclub.com, https://ucsdwrestlingclub.com"
+    </Files>
+
     Include /etc/letsencrypt/options-ssl-apache.conf
     SSLCertificateFile    /etc/letsencrypt/live/ucsdwrestlingclub.com/fullchain.pem
     SSLCertificateKeyFile /etc/letsencrypt/live/ucsdwrestlingclub.com/privkey.pem

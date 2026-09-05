@@ -1,0 +1,12 @@
+# Nothing in this directory is ever fetched over HTTP. It holds application code
+# that pages under the web root include from disk.
+#
+# This exists because the deploy rsyncs sites/reporting/ wholesale into the web
+# root, so app/ lands under DocumentRoot whether or not that was intended. PHP
+# files would normally be executed rather than disclosed, but a misconfiguration
+# that stops PHP from handling .php (a broken FPM socket, a bad handler change)
+# turns every one of these into a plain-text download containing the auth logic.
+#
+# Belt and braces: each file also refuses to run unless CSE135_APP is defined, so
+# losing this .htaccess is not on its own sufficient to expose anything.
+Require all denied

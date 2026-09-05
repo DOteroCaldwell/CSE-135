@@ -25,6 +25,7 @@
     var FLUSH_MS      = 5000;   // periodic activity flush
     var FLUSH_AT      = 50;     // flush early once the queue reaches this
     var QUEUE_MAX     = 500;    // hard cap, oldest dropped
+    var RESOURCE_MAX  = 100;    // per resources payload, keeps the beacon well under quota
 
     /* ---------------------------------------------------------------- utils */
 
@@ -347,6 +348,112 @@
         send('performance', out);
     }
 
+    /* -------------------------------------------------------------- resources */
+
+    /*
+     * Navigation timing can size the subresource window
+     * (loadEventStart - domContentLoadedEventEnd) but cannot say what filled it.
+     * PerformanceResourceTiming names each file, which is what turns "the image
+     * tail is slow" into "these four PNGs are 11 MB".
+     *
+     * Two collection points, deliberately:
+     *   at load   — everything the document pulled in to reach the load event
+     *   on leave  — everything lazy-loaded AFTER it
+     *
+     * The second matters more than it looks. This site lazy-loads half its product
+     * images via data-src, so a load-time-only snapshot would systematically
+     * under-count exactly the images that are deferred, and the weight report would
+     * be biased toward whatever happens to load eagerly. Sampling both windows is
+     * what keeps the ranking honest.
+     */
+
+    var lateResources = [];
+
+    /*
+     * transferSize === 0 is ambiguous and the report has to disambiguate it:
+     *   0 with a non-zero decodedBodySize => served from cache
+     *   0 with a zero    decodedBodySize => cross-origin without Timing-Allow-Origin
+     * Both sizes are kept so the two cases stay distinguishable downstream.
+     */
+    function resourceEntry(r) {
+        function num(v) { return typeof v === 'number' ? Math.round(v * 100) / 100 : null; }
+        return {
+            name: String(r.name || '').slice(0, 1000),
+            initiatorType: r.initiatorType || null,
+            startTime: num(r.startTime),
+            duration: num(r.duration),
+            transferSize: num(r.transferSize),
+            encodedBodySize: num(r.encodedBodySize),
+            decodedBodySize: num(r.decodedBodySize),
+            nextHopProtocol: r.nextHopProtocol || null,
+            renderBlockingStatus: r.renderBlockingStatus || null,
+            deliveryType: r.deliveryType || null
+        };
+    }
+
+    /*
+     * Excludes instrumentation side-effects, NOT everything this collector owns.
+     *
+     * The distinction matters and it is easy to get backwards. The /log beacons and
+     * the px.gif probe are traffic that exists only because we are measuring —
+     * counting them would measure the observer. But collector.js itself is a
+     * synchronous, render-blocking <script> in the <head> of every page: it is real
+     * page weight that a real visitor really pays for, and it is a legitimate
+     * candidate answer to "what should we fix". Filtering it out because it happens
+     * to be ours is exactly the kind of convenient blind spot this platform is
+     * supposed not to have.
+     */
+    function isOwnTraffic(name) {
+        var n = String(name || '');
+        return n.indexOf(ENDPOINT) === 0 || n.indexOf(PIXEL) === 0;
+    }
+
+    function sendResourceBatch(list, reason) {
+        if (!list.length) {
+            return;
+        }
+        var out = list;
+        if (out.length > RESOURCE_MAX) {
+            // Keep the slowest rather than the first N: an arbitrary prefix would
+            // bias the ranking toward whatever the parser happened to reach first.
+            out = out.slice().sort(function (a, b) {
+                return (b.duration || 0) - (a.duration || 0);
+            }).slice(0, RESOURCE_MAX);
+        }
+        send('resources', { reason: reason, entries: out });
+    }
+
+    function sendResources() {
+        var out = [];
+        try {
+            var entries = performance.getEntriesByType('resource') || [];
+            for (var i = 0; i < entries.length; i++) {
+                if (isOwnTraffic(entries[i].name)) { continue; }
+                out.push(resourceEntry(entries[i]));
+            }
+        } catch (e) {
+            return;
+        }
+        sendResourceBatch(out, 'load');
+    }
+
+    // buffered:false, and registered only after the load-time snapshot has been
+    // taken, so the observer yields strictly later entries and nothing is sent twice.
+    function watchLateResources() {
+        try {
+            if (!window.PerformanceObserver) { return; }
+            var po = new PerformanceObserver(function (list) {
+                var es = list.getEntries();
+                for (var i = 0; i < es.length; i++) {
+                    if (isOwnTraffic(es[i].name)) { continue; }
+                    if (lateResources.length >= RESOURCE_MAX) { return; }
+                    lateResources.push(resourceEntry(es[i]));
+                }
+            });
+            po.observe({ type: 'resource', buffered: false });
+        } catch (e) { /* observer unsupported: load-time snapshot still went out */ }
+    }
+
     /* --------------------------------------------------------------- activity */
 
     var queue = [];
@@ -565,6 +672,8 @@
         });
 
         flush('pageleave');
+        sendResourceBatch(lateResources, 'pageleave');
+        lateResources = [];
     }
 
     // pagehide covers navigation and bfcache; visibilitychange covers the mobile
@@ -597,6 +706,8 @@
         setTimeout(function () {
             sendStatic();
             sendPerformance();
+            sendResources();
+            watchLateResources();
         }, 0);
     }
 

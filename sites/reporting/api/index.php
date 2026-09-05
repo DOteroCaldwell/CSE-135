@@ -14,8 +14,20 @@ declare(strict_types=1);
  * in the $RESOURCES map below. Every value goes through a prepared statement.
  */
 
-const CONFIG_PATH = '/etc/cse135/db.ini';
+// Database credentials now come from app/Db.php via bootstrap (DB_CONFIG_PATH).
 const MAX_BODY    = 1048576;
+
+/*
+ * HW4: the API authenticates itself.
+ *
+ * Through HW3 this endpoint was protected only by the reporting vhost's blanket
+ * `Require valid-user`. HW4 has to remove that — a login form behind HTTP Basic is
+ * a login form nobody can reach — and the moment it goes, an unguarded /api/*
+ * would serve the entire analytics database to anonymous callers. So the guard
+ * moves into the application, and it must be in place BEFORE the vhost directive
+ * comes off.
+ */
+require_once __DIR__ . '/../app/bootstrap.php';
 
 /*
  * The one place that decides what is addressable and what is writable.
@@ -31,7 +43,8 @@ $RESOURCES = [
         'id_int'   => false,
         'order'    => 'first_seen DESC',
         'writable' => ['session_id', 'sid_source', 'first_seen', 'last_seen',
-                       'entry_page', 'client_ip', 'user_agent', 'payload_count'],
+                       'entry_page', 'entry_host', 'client_ip', 'user_agent',
+                       'payload_count', 'is_synthetic'],
         'required' => ['session_id'],
         'json'     => [],
     ],
@@ -40,7 +53,7 @@ $RESOURCES = [
         'id'       => 'id',
         'id_int'   => true,
         'order'    => 'id DESC',
-        'writable' => ['session_id', 'pageview_id', 'page', 'user_agent', 'language',
+        'writable' => ['session_id', 'pageview_id', 'page', 'host', 'user_agent', 'language',
                        'cookies_enabled', 'js_enabled', 'images_enabled', 'css_enabled',
                        'screen_width', 'screen_height', 'window_width', 'window_height',
                        'connection_type', 'raw', 'client_sent_at', 'server_ts'],
@@ -52,7 +65,7 @@ $RESOURCES = [
         'id'       => 'id',
         'id_int'   => true,
         'order'    => 'id DESC',
-        'writable' => ['session_id', 'pageview_id', 'page', 'load_start_ms', 'load_end_ms',
+        'writable' => ['session_id', 'pageview_id', 'page', 'host', 'load_start_ms', 'load_end_ms',
                        'load_start_epoch', 'load_end_epoch', 'total_load_ms',
                        'timing_source', 'nav_timing', 'client_sent_at', 'server_ts'],
         'required' => ['session_id'],
@@ -63,12 +76,25 @@ $RESOURCES = [
         'id'       => 'id',
         'id_int'   => true,
         'order'    => 'id DESC',
-        'writable' => ['session_id', 'pageview_id', 'page', 'event_type', 'occurred_at',
+        'writable' => ['session_id', 'pageview_id', 'page', 'host', 'event_type', 'occurred_at',
                        'pos_x', 'pos_y', 'scroll_x', 'scroll_y', 'mouse_button',
                        'key_name', 'idle_duration_ms', 'error_message', 'detail',
                        'client_sent_at', 'server_ts'],
         'required' => ['session_id', 'event_type'],
         'json'     => ['detail'],
+    ],
+    'resources' => [
+        'table'    => 'resources',
+        'id'       => 'id',
+        'id_int'   => true,
+        'order'    => 'id DESC',
+        'writable' => ['session_id', 'pageview_id', 'page', 'host', 'name',
+                       'initiator_type', 'start_ms', 'duration_ms', 'transfer_size',
+                       'encoded_body_size', 'decoded_body_size', 'next_hop_protocol',
+                       'render_blocking_status', 'delivery_type', 'raw',
+                       'client_sent_at', 'server_ts'],
+        'required' => ['session_id'],
+        'json'     => ['raw'],
     ],
 ];
 
@@ -122,32 +148,11 @@ function fail(int $code, string $message, array $extra = []): never
 
 function db(): PDO
 {
-    static $pdo = null;
-    if ($pdo instanceof PDO) {
-        return $pdo;
-    }
-    $cfg = @parse_ini_file(CONFIG_PATH);
-    if (!is_array($cfg) || !isset($cfg['name'], $cfg['user'], $cfg['pass'])) {
-        error_log('[cse135/api] cannot read ' . CONFIG_PATH);
-        fail(500, 'internal error');
-    }
-    $dsn = sprintf(
-        'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
-        $cfg['host'] ?? '127.0.0.1',
-        (int) ($cfg['port'] ?? 3306),
-        $cfg['name']
-    );
-    try {
-        $pdo = new PDO($dsn, $cfg['user'], $cfg['pass'], [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES   => false,
-        ]);
-    } catch (PDOException $e) {
-        error_log('[cse135/api] db connect failed: ' . $e->getMessage());
-        fail(500, 'internal error');
-    }
-    return $pdo;
+    // One connection per request. Db::conn() (app/Db.php) reads the same
+    // /etc/cse135/db.ini this file used to parse for itself; sharing it means the
+    // auth guard and the query path do not open two connections to say the same
+    // thing.
+    return Db::conn();
 }
 
 /** Decode the JSON-typed columns so the response nests real objects. */
@@ -203,6 +208,65 @@ function columns(array $input, array $spec): array
     }
     return $out;
 }
+
+/* ------------------------------------------------------------------- auth -- */
+
+/**
+ * Extract HTTP Basic credentials.
+ *
+ * PHP_AUTH_USER is populated when Apache itself performed the authentication or
+ * when running as an Apache module. Under php-fpm with the vhost's Require lifted,
+ * Apache forwards nothing unless `CGIPassAuth On` is set — and even then some
+ * configurations surface the header only as REDIRECT_HTTP_AUTHORIZATION after an
+ * internal rewrite, which is exactly what /api/* goes through. All three are
+ * checked so the endpoint behaves the same however it is wired.
+ */
+function basicCredentials(): ?array
+{
+    if (isset($_SERVER['PHP_AUTH_USER'])) {
+        return [(string) $_SERVER['PHP_AUTH_USER'], (string) ($_SERVER['PHP_AUTH_PW'] ?? '')];
+    }
+
+    $header = $_SERVER['HTTP_AUTHORIZATION']
+        ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
+        ?? '';
+    if (!is_string($header) || stripos($header, 'Basic ') !== 0) {
+        return null;
+    }
+
+    $decoded = base64_decode(substr($header, 6), true);
+    if ($decoded === false || !str_contains($decoded, ':')) {
+        return null;
+    }
+    [$user, $pass] = explode(':', $decoded, 2);
+    return [$user, $pass];
+}
+
+/**
+ * Two accepted credentials, deliberately.
+ *
+ * A browser session covers api-test.html, which is same-origin and simply carries
+ * the dashboard's cookie. HTTP Basic covers `curl -u`, which is how the HW3
+ * deliverable is graded and how anything scripted will call this. Dropping Basic
+ * would break a submitted deliverable; dropping the session would mean the test
+ * console prompts for a password the user already gave.
+ */
+function requireApiAuth(): void
+{
+    if (Auth::check()) {
+        return;
+    }
+
+    $creds = basicCredentials();
+    if ($creds !== null && Auth::attempt($creds[0], $creds[1]) !== null) {
+        return;
+    }
+
+    header('WWW-Authenticate: Basic realm="CSE135 Analytics API"');
+    fail(401, 'authentication required');
+}
+
+requireApiAuth();
 
 /* ------------------------------------------------------------------ route -- */
 

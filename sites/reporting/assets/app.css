@@ -1,0 +1,209 @@
+/* CSE 135 HW4 — reporting dashboard styles.
+ *
+ * Hand-written and deliberately small. This is a dashboard whose subject is page
+ * weight; pulling in a CSS framework to style it would undercut the argument it
+ * exists to make. Charts come from Charts.css (6 KB gzipped); this file is the
+ * rest, and there is no JavaScript on any page. */
+
+:root {
+  --bg: #f6f7f9;
+  --surface: #fff;
+  --ink: #1b1f24;
+  --ink-soft: #5a6470;
+  --line: #dfe3e8;
+  --accent: #2f6fed;
+  --accent-soft: #eaf0fe;
+  --warn-bg: #fff6e5;
+  --warn-line: #f0c675;
+  --radius: 8px;
+
+  /* Charts.css reads these. One hue family, ordered light-to-dark, so a stacked
+     bar reads as a sequence of phases rather than an unordered set of categories. */
+  --color-1: #123a75;
+  --color-2: #1d5aa8;
+  --color-3: #2f6fed;
+  --color-4: #6d9bf1;
+  --color-5: #a8c4f7;
+  --color-6: #cbdbfa;
+  --color-7: #8a94a6;
+  --color-8: #c2c8d2;
+  --color-9: #e2e6ec;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, sans-serif;
+}
+
+/* ------------------------------------------------------------------- chrome */
+
+.topbar { background: var(--surface); border-bottom: 1px solid var(--line); }
+.topbar-inner {
+  max-width: 1100px; margin: 0 auto; padding: 0 20px;
+  display: flex; align-items: center; gap: 24px; min-height: 56px; flex-wrap: wrap;
+}
+.brand { font-weight: 650; color: var(--ink); text-decoration: none; white-space: nowrap; }
+.topbar nav ul { list-style: none; display: flex; gap: 18px; margin: 0; padding: 0; }
+.topbar nav a { color: var(--ink-soft); text-decoration: none; }
+.topbar nav a:hover { color: var(--ink); }
+.topbar nav a[aria-current="page"] { color: var(--accent); font-weight: 600; }
+.whoami { margin-left: auto; display: flex; align-items: center; gap: 12px;
+          color: var(--ink-soft); font-size: 14px; }
+
+.role {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+  padding: 2px 7px; border-radius: 99px; background: var(--accent-soft);
+  color: #1b4fbf; font-weight: 600;
+}
+.role-viewer { background: #eef0f3; color: #5a6470; }
+
+main { max-width: 1100px; margin: 0 auto; padding: 28px 20px 60px; }
+main.wide { max-width: 1400px; }
+h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -.01em; }
+h2 { font-size: 18px; margin: 0 0 4px; }
+.subtitle { color: var(--ink-soft); margin: 0 0 24px; }
+
+.pagefoot {
+  max-width: 1100px; margin: 0 auto; padding: 0 20px 40px;
+  color: var(--ink-soft); font-size: 13px;
+}
+
+/* -------------------------------------------------------------------- cards */
+
+.card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 20px; margin-bottom: 22px;
+}
+.card > h2 + .card-question { margin-top: 2px; }
+.card-question { color: var(--ink-soft); font-size: 14px; margin: 0 0 16px; }
+
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 22px; }
+.grid-2 .card { margin-bottom: 0; }
+
+/* ------------------------------------------------------------------ tables */
+
+table.data { border-collapse: collapse; width: 100%; font-size: 14px; }
+table.data th, table.data td {
+  text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+table.data th { color: var(--ink-soft); font-weight: 600; font-size: 12px;
+                text-transform: uppercase; letter-spacing: .03em; }
+table.data td.num, table.data th.num { text-align: right; font-variant-numeric: tabular-nums; }
+table.data tbody tr:hover { background: #fafbfc; }
+table.data td.wrap { white-space: normal; word-break: break-all; max-width: 460px; }
+.scroll-x { overflow-x: auto; }
+
+/* ------------------------------------------------------------------ charts */
+
+.chart-wrap { margin: 8px 0 4px; }
+.charts-css { font-size: 13px; }
+.charts-css.bar { height: auto; }
+
+/* Charts.css hides the legend's own colour swatches unless we supply them. */
+ul.legend { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 18px;
+            padding: 0; margin: 14px 0 0; font-size: 13px; color: var(--ink-soft); }
+ul.legend li { display: flex; align-items: center; gap: 7px; }
+ul.legend span.swatch { width: 11px; height: 11px; border-radius: 2px; flex: none; }
+
+/* ----------------------------------------------------------- coverage badge */
+
+/* Deliberately prominent rather than a footnote. Every figure on this site is
+   computed from however much data happens to exist, and on thin data the honest
+   reading is "not yet known" — which is only visible if the sample size is too. */
+.coverage {
+  display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline;
+  font-size: 12.5px; color: var(--ink-soft);
+  border-top: 1px dashed var(--line); margin-top: 16px; padding-top: 10px;
+}
+.coverage b { color: var(--ink); font-weight: 600; }
+.coverage .caveat {
+  background: var(--warn-bg); border: 1px solid var(--warn-line);
+  border-radius: 5px; padding: 2px 8px; color: #7a5312;
+}
+
+/* ------------------------------------------------------------------ verdict */
+
+.verdict {
+  border: 1px solid var(--accent); background: var(--accent-soft);
+  border-radius: var(--radius); padding: 18px 20px; margin-bottom: 22px;
+}
+.verdict h2 { margin-bottom: 6px; }
+.verdict .headline { font-size: 20px; font-weight: 650; margin: 0 0 6px; }
+.verdict p { margin: 0 0 8px; }
+.verdict p:last-child { margin-bottom: 0; }
+
+/* ------------------------------------------------------------------- forms */
+
+form.stack { display: grid; gap: 14px; }
+label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 5px; }
+input[type=text], input[type=email], input[type=password], select {
+  width: 100%; padding: 9px 11px; border: 1px solid var(--line);
+  border-radius: 6px; font: inherit; background: #fff;
+}
+input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+
+.btn {
+  display: inline-block; padding: 9px 16px; border-radius: 6px; border: 1px solid var(--accent);
+  background: var(--accent); color: #fff; font: inherit; font-weight: 600;
+  cursor: pointer; text-decoration: none;
+}
+.btn:hover { filter: brightness(1.07); }
+.btn-quiet { background: transparent; color: var(--ink-soft); border-color: var(--line); font-weight: 500; }
+.btn-quiet:hover { color: var(--ink); }
+.btn-danger { background: #c0392b; border-color: #c0392b; }
+.btn-small { padding: 5px 10px; font-size: 13px; }
+
+.filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+           background: var(--surface); border: 1px solid var(--line);
+           border-radius: var(--radius); padding: 14px 16px; margin-bottom: 22px; }
+.filters .field { min-width: 150px; }
+.filters label { margin-bottom: 3px; }
+
+.notice { border-radius: 6px; padding: 10px 14px; margin-bottom: 18px; font-size: 14px; }
+.notice-error { background: #fdecea; border: 1px solid #f5b7b1; color: #922b21; }
+.notice-ok    { background: #eafaf1; border: 1px solid #a9dfbf; color: #1e6b45; }
+
+/* ------------------------------------------------- bare pages (login/logout) */
+
+body.bare { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+.card-narrow {
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 30px; width: 100%; max-width: 380px; margin: 20px;
+}
+.card-narrow h1 { font-size: 21px; margin-bottom: 18px; }
+
+/* --------------------------------------------------------------- error page */
+
+body.error-page { display: flex; align-items: center; justify-content: center; min-height: 100vh; text-align: center; }
+.error-code { font-size: 56px; font-weight: 700; color: var(--line); margin: 0; line-height: 1; }
+
+/* ------------------------------------------------------------ a11y + chart */
+
+/* Chart captions: present for screen readers, redundant on screen where the
+   surrounding heading already says the same thing. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* Charts.css ships .tooltip styling but leaves the reveal to the page, so that a
+   chart can opt out. Ours reveal on hover and on keyboard focus. */
+.charts-css td:hover .tooltip,
+.charts-css td:focus-within .tooltip { opacity: 1; visibility: visible; }
+
+/* Segment labels: legible against the darker end of the palette. */
+.charts-css .data { color: #fff; font-size: 11.5px; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
+.charts-css.column .data { color: var(--ink); text-shadow: none; }
+
+/* Row headers should read as labels, not as table headings. */
+.charts-css th[scope="row"] {
+  font-weight: 500; font-size: 12.5px; color: var(--ink-soft);
+  text-align: right; padding-right: 10px; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}

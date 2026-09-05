@@ -1,0 +1,7 @@
+; Local dev only. The real file on the droplet is /etc/cse135/db.ini and is
+; never copied from here.
+host = cse135-mysql
+port = 3306
+name = cse135
+user = cse135_app
+pass = localdevpassword
