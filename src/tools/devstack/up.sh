@@ -44,7 +44,7 @@ for _ in $(seq 1 60); do
 done; echo
 [ "$ready" = 1 ] || { echo "mysql did not become ready" >&2; exit 1; }
 
-for f in schema.sql 002-host-and-resources.sql 003-users.sql 004-seed-users.sql; do
+for f in schema.sql 002-host-and-resources.sql 003-users.sql 004-seed-users.sql 005-grader-compat.sql; do
   docker exec -i cse135-mysql mysql -uroot -prootpw < "$ROOT/src/sql/$f"
   echo "  applied $f"
 done

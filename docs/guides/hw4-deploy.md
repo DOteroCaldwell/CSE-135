@@ -9,6 +9,7 @@ Repo artifacts:
 - [`src/sql/002-host-and-resources.sql`](../../src/sql/002-host-and-resources.sql) — host column, synthetic flag, `resources` table
 - [`src/sql/003-users.sql`](../../src/sql/003-users.sql) — `users` + `login_attempts`
 - [`src/sql/004-seed-users.sql`](../../src/sql/004-seed-users.sql) — grader accounts
+- [`src/sql/005-grader-compat.sql`](../../src/sql/005-grader-compat.sql) — keeps HW3's `curl -u grader:...` working
 - [`deploy/apache/reporting.conf.sample`](../../deploy/apache/reporting.conf.sample) — the target vhost
 - [`deploy/apache/collector.conf.sample`](../../deploy/apache/collector.conf.sample) — adds `Timing-Allow-Origin`
 - [`src/tools/devstack/`](../../src/tools/devstack/) — local stack, for rehearsing any of this
@@ -85,9 +86,17 @@ cd ~/cse135/sql
 sudo mysql < 002-host-and-resources.sql
 sudo mysql < 003-users.sql
 sudo mysql < 004-seed-users.sql
+sudo mysql < 005-grader-compat.sql
 ```
 
-All three are **idempotent** — 002 guards every `ALTER` behind an
+`005` adds the HW3 `grader` account as a real application user with the same
+password it has in `/etc/apache2/.htpasswd`. Without it, the `curl -u grader:...`
+command the HW3 write-up documents starts returning 401 the moment Step 4 lifts
+Basic auth, because the application authenticates against the `users` table and
+`grader` exists only in the htpasswd file. It is scoped to `analyst`, so it reaches
+the API, dashboard and reports but not user management.
+
+All four are **idempotent** — 002 guards every `ALTER` behind an
 `information_schema` check, 003 uses `CREATE TABLE IF NOT EXISTS`, and 004 is an
 `ON DUPLICATE KEY UPDATE` upsert. Re-running them is a no-op, not an error, which
 matters because these are manual steps and manual steps get repeated.
@@ -99,7 +108,7 @@ sudo mysql -e "USE cse135; SHOW TABLES;"
 # expect: activity, login_attempts, performance, resources, sessions, static, users
 
 sudo mysql -e "USE cse135; SELECT id, username, email, role, is_admin FROM users;"
-# expect: grader-admin (super_admin, 1) and grader-basic (analyst, 0)
+# expect: grader-admin (super_admin, 1), grader-basic (analyst, 0), grader (analyst, 0)
 
 sudo mysql -e "USE cse135;
   SELECT TABLE_NAME, COLUMN_NAME FROM information_schema.COLUMNS
@@ -152,19 +161,42 @@ you want them on the droplet.
 
 ## Step 3 — Verify the guard *before* removing Basic auth
 
-Basic auth is still active, so everything needs `-u grader:...`. That is the point:
-you are testing the application's own guard while Apache is still the backstop.
+Two independent auth layers are active right now, and they check different places:
+
+| Layer | Checks against | Knows about |
+| --- | --- | --- |
+| Apache `Require valid-user` | `/etc/apache2/.htpasswd` | `grader` |
+| App `requireApiAuth()` | the `users` table | `grader`, `grader-admin`, `grader-basic` |
+
+HTTP Basic can only carry **one** credential, so a request has to satisfy both with
+the same username and password. Exactly one account does: `grader`, which migration
+005 added to the `users` table with the password it already has in htpasswd.
 
 ```bash
 B=https://reporting.ucsdwrestlingclub.com
-G=grader:cse135-shared-spider          # HW1 Basic auth, still in force
+G=grader:cse135-shared-spider
 
-# The login page renders (Basic auth challenges first; that is expected here)
 curl -s -u "$G" -o /dev/null -w "login page: %{http_code}\n" $B/login.php
+# expect 200
 
-# The API still answers for an authorised caller
-curl -s -u "$G" -o /dev/null -w "api: %{http_code}\n" $B/api/static
+curl -s -u "$G" -o /dev/null -w "api:        %{http_code}\n" $B/api/static
+# expect 200 — this is the guard accepting a database user, not Apache waving it through
 ```
+
+**If `api` returns 401 here, migration 005 was not applied.** That is the whole
+failure mode: Apache accepts `grader` from htpasswd, hands PHP
+`PHP_AUTH_USER=grader`, and the application looks that name up in `users` and does
+not find it. Re-run Step 1 and try again.
+
+Note that `-u grader-admin:...` will *not* work in this window — that account is not
+in htpasswd, so Apache rejects it before PHP ever sees it. It starts working in
+Step 5, once Basic auth is gone.
+
+> **Side effect worth knowing about.** Every failed API Basic attempt is written to
+> `login_attempts` and counts toward the per-IP throttle (25 failures / 15 minutes).
+> A few probes are harmless; a scripted loop can lock your own IP out of the login
+> form. Clear it with:
+> `sudo mysql -e "USE cse135; DELETE FROM login_attempts WHERE succeeded = 0;"`
 
 Then open `https://reporting.ucsdwrestlingclub.com/login.php` in a browser (you will
 get the Basic auth dialog first, then the app's own login form) and **sign in as
@@ -173,6 +205,9 @@ get the Basic auth dialog first, then the app's own login form) and **sign in as
 - the dashboard renders with charts, not a PHP error
 - the **Users** link appears in the navigation
 - the load cost report opens
+- **in the same tab, `https://reporting.ucsdwrestlingclub.com/api/static` returns
+  JSON rather than a 401** — this is the real proof that the application guard is
+  live, since the session cookie is what satisfies it
 
 If the dashboard 500s here, stop. Check `/var/log/apache2/reporting_error.log` for
 `[cse135/app]` lines — the most likely causes are a missed migration or
@@ -285,6 +320,10 @@ curl -s -o /dev/null -w "app/ source    : %{http_code}\n" $B/app/Auth.php
 curl -s -o /dev/null -w "basic-auth api : %{http_code}\n" \
   -u grader-admin:Wrestl3-Admin-2026 $B/api/resources
 # expect 200  <-- proves CGIPassAuth is working
+
+curl -s -o /dev/null -w "hw3 grader path: %{http_code}\n" \
+  -u grader:cse135-shared-spider $B/api/static
+# expect 200  <-- the command HW3's write-up documents, still true after the cutover
 ```
 
 If `anon api` returns **200**, the guard is not running. Restore the backup from
@@ -418,6 +457,7 @@ ALTER TABLE sessions DROP COLUMN entry_host, DROP COLUMN is_synthetic;
 - [ ] `configtest` clean, Apache reloaded
 - [ ] Anonymous: `/` → 302, `/api/static` → **401**, `/app/Auth.php` → 403
 - [ ] `curl -u grader-admin:... /api/resources` → 200
+- [ ] `curl -u grader:cse135-shared-spider /api/static` → 200 (HW3's documented command)
 - [ ] Login works by **username** *and* by **email**
 - [ ] `grader-basic` gets a 403 on `/users.php`; no Users link in the nav
 - [ ] Admin can create → edit → delete a user, with the delete confirmation step
@@ -444,6 +484,7 @@ ALTER TABLE sessions DROP COLUMN entry_host, DROP COLUMN is_synthetic;
 | Charts render as plain tables | `assets/charts.min.css` missing or 404 | Confirm it deployed; check for a stray `Require` blocking `/assets` |
 | Dashboard says "No performance data yet" | Filters exclude everything | Check the *Generated traffic* filter; click **Reset** |
 | `resources` stays empty after browsing | Old `collector.js` cached in the browser | Hard-reload the test site; confirm the new collector is live with `curl -s https://collector.ucsdwrestlingclub.com/collector.js \| grep -c "getEntriesByType('resource')"` — expect 1 |
+| `curl -u grader:cse135-shared-spider /api/...` returns 401 | Migration 005 not applied — `grader` is in htpasswd but not in the `users` table | Re-run Step 1; it is idempotent |
 | Anonymous `/api/static` returns **200** | The guard is not running | **Roll back now** (see above), then check that `api/index.php` contains `requireApiAuth();` and that `app/bootstrap.php` deployed |
 
 ---
