@@ -71,18 +71,26 @@ final class AudienceSet
             return self::$memo[$key];
         }
 
-        [$where, $params] = $f->where('s', 'server_ts');
-        $sql = 'SELECT s.id, s.session_id, s.pageview_id, s.page, s.host, s.server_ts,
-                       s.user_agent, s.language, s.cookies_enabled, s.js_enabled,
-                       s.images_enabled, s.css_enabled, s.screen_width, s.screen_height,
-                       s.window_width, s.window_height, s.connection_type,
-                       JSON_EXTRACT(s.raw, \'$.screen.devicePixelRatio\') + 0        AS dpr,
-                       JSON_UNQUOTE(JSON_EXTRACT(s.raw, \'$.timezone\'))              AS timezone,
-                       JSON_EXTRACT(s.raw, \'$.connection.saveData\')                 AS save_data,
-                       JSON_UNQUOTE(JSON_EXTRACT(s.raw, \'$.platform\'))              AS platform
-                  FROM `static` s'
+        /*
+         * Alias `st`, NOT `s`. Filters::where() appends an EXISTS subquery over
+         * `sessions s` for the generated-traffic filter; had this table also been
+         * aliased `s`, the inner alias would shadow the outer one, the correlation
+         * would compare a row to itself, and the filter would silently match
+         * everything. It did, until the production crawl showed the audience
+         * report returning the same 75 pageviews with generated traffic excluded.
+         */
+        [$where, $params] = $f->where('st', 'server_ts');
+        $sql = 'SELECT st.id, st.session_id, st.pageview_id, st.page, st.host, st.server_ts,
+                       st.user_agent, st.language, st.cookies_enabled, st.js_enabled,
+                       st.images_enabled, st.css_enabled, st.screen_width, st.screen_height,
+                       st.window_width, st.window_height, st.connection_type,
+                       JSON_EXTRACT(st.raw, \'$.screen.devicePixelRatio\') + 0        AS dpr,
+                       JSON_UNQUOTE(JSON_EXTRACT(st.raw, \'$.timezone\'))              AS timezone,
+                       JSON_EXTRACT(st.raw, \'$.connection.saveData\')                 AS save_data,
+                       JSON_UNQUOTE(JSON_EXTRACT(st.raw, \'$.platform\'))              AS platform
+                  FROM `static` st'
              . ($where === [] ? '' : ' WHERE ' . implode(' AND ', $where))
-             . ' ORDER BY s.server_ts DESC';
+             . ' ORDER BY st.server_ts DESC';
 
         $rows = Db::all($sql, $params);
         foreach ($rows as &$r) {

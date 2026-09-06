@@ -43,9 +43,10 @@ function render_report_engagement(Filters $f): void
 <!-- ============================ THE ANSWER ============================== -->
 <section class="verdict">
   <h2>The answer, as the data currently stands</h2>
-<?php if ($depth->summary['reached_half'] !== null): ?>
+<?php if ($depth->summary['reached_half'] !== null): $dn = (int) $depth->summary['pageviews']; ?>
   <p class="headline">
-    <?= e(fmt_pct($depth->summary['reached_half'])) ?> of pageviews get at least halfway down the page
+    <?= e(fmt_pct($depth->summary['reached_half'])) ?> of pageviews get at least halfway down the page<?php
+    if ($dn < $n): ?> <span class="card-question" style="font-size:14px;font-weight:400">(scroll depth known for <?= e((string) $dn) ?> of <?= e((string) $n) ?>)</span><?php endif; ?>
 <?php if ($worst !== null): ?>
     — least of all on <code><?= e($worst) ?></code>
 <?php endif; ?>

@@ -77,9 +77,12 @@ final class Filters
             // Correlated rather than joined: metrics compose this fragment into
             // queries that already have their own FROM, and a subquery does not
             // disturb their row counts the way an extra join can.
-            $sql[] = "EXISTS (SELECT 1 FROM sessions s
-                               WHERE s.session_id = $alias.session_id
-                                 AND s.is_synthetic = 0)";
+            // The subquery alias must never equal $alias, or the correlation
+            // compares a row to itself and the filter matches everything.
+            $sub = $alias === 'sess' ? 'sess2' : 'sess';
+            $sql[] = "EXISTS (SELECT 1 FROM sessions $sub
+                               WHERE $sub.session_id = $alias.session_id
+                                 AND $sub.is_synthetic = 0)";
         }
 
         return [$sql, $par];
