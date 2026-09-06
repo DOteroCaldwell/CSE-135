@@ -47,7 +47,7 @@ for _ in $(seq 1 60); do
 done; echo
 [ "$ready" = 1 ] || { echo "mysql did not become ready" >&2; exit 1; }
 
-for f in schema.sql 002-host-and-resources.sql 003-users.sql 006-cleanup-test-rows.sql; do
+for f in schema.sql 002-host-and-resources.sql 003-users.sql 006-cleanup-test-rows.sql 007-sections-and-saved-reports.sql; do
   docker exec -i cse135-mysql mysql -uroot -prootpw < "$ROOT/src/sql/$f" >/dev/null
   echo "  applied $f"
 done
@@ -58,6 +58,7 @@ done
 # $CFG is gitignored, so this never lands in the repo either.
 docker run --rm -v "$ROOT":/app -w /app php:8.3-cli \
   php src/tools/seed-users/make-users.php --admin="$DEV_PASS" --basic="$DEV_PASS" \
+      --viewer="$DEV_PASS" --perf="$DEV_PASS" \
   > "$CFG/local-users.sql" 2>/dev/null
 docker exec -i cse135-mysql mysql -uroot -prootpw < "$CFG/local-users.sql" >/dev/null
 echo "  seeded local accounts"
@@ -75,5 +76,5 @@ docker run -d --name cse135-web --network cse135net -p 8135:8135 \
   cse135-php php -S 0.0.0.0:8135 -t /var/www/reporting /var/www/router.php >/dev/null
 
 echo
-echo "  http://localhost:8135   grader-admin / $DEV_PASS"
+echo "  http://localhost:8135   grader-admin | grader-basic | grader-perf | grader-viewer  /  $DEV_PASS"
 echo "  bias test:  ../verify/bias-test.sh ${PHP[*]}"

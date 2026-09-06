@@ -9,6 +9,7 @@ defined('CSE135_APP') || exit;
  * $opts:
  *   subtitle  string  one line under the h1
  *   wide      bool    widen the content column (grids with many columns)
+ *   section   string  section key, shown as a badge beside the title
  */
 function layout_header(string $title, array $opts = []): void
 {
@@ -16,10 +17,20 @@ function layout_header(string $title, array $opts = []): void
     $admin = Auth::isAdmin();
     $here  = parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/';
 
-    $nav = [
-        '/'                            => 'Dashboard',
-        '/reports/page-load-cost.php'  => 'Load cost report',
-    ];
+    /*
+     * The nav is built from what this account may open, so it never offers a link
+     * that leads to a 403. A viewer gets Saved reports and nothing else; an analyst
+     * gets the dashboard plus the reports for their sections; an admin gets all of
+     * that and Users.
+     */
+    $nav = [];
+    if ($user !== null && !Auth::isViewer()) {
+        $nav['/'] = 'Dashboard';
+        foreach (Reports::visible() as $r) {
+            $nav[$r['path']] = $r['title'];
+        }
+    }
+    $nav['/saved/'] = 'Saved reports';
     if ($admin) {
         $nav['/users.php'] = 'Users';
     }
@@ -44,7 +55,7 @@ function layout_header(string $title, array $opts = []): void
     <nav aria-label="Main">
       <ul>
 <?php foreach ($nav as $href => $label): ?>
-        <li><a href="<?= e($href) ?>"<?= $here === $href ? ' aria-current="page"' : '' ?>><?= e($label) ?></a></li>
+        <li><a href="<?= e($href) ?>"<?= ($here === $href || ($href === '/saved/' && str_starts_with($here, '/saved/'))) ? ' aria-current="page"' : '' ?>><?= e($label) ?></a></li>
 <?php endforeach; ?>
       </ul>
     </nav>
@@ -58,7 +69,7 @@ function layout_header(string $title, array $opts = []): void
 </header>
 
 <main class="<?= !empty($opts['wide']) ? 'wide' : '' ?>">
-  <h1><?= e($title) ?></h1>
+  <h1><?= e($title) ?><?php if (!empty($opts['section'])): ?> <span class="role section-badge"><?= e(Sections::label($opts['section'])) ?></span><?php endif; ?></h1>
 <?php if (!empty($opts['subtitle'])): ?>
   <p class="subtitle"><?= e($opts['subtitle']) ?></p>
 <?php endif; ?>

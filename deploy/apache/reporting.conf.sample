@@ -1,6 +1,13 @@
-# HW4 — reporting.ucsdwrestlingclub.com (:443)
+# HW4/HW5 — reporting.ucsdwrestlingclub.com (:443)
 #
-# Hosts the REST API (/api), the analytics dashboard, and the detailed report.
+# Hosts the REST API (/api), the analytics dashboard, the three section reports,
+# saved reports and the PDF export.
+#
+# HW5 ADDITIONS THAT LIVE OUTSIDE THIS FILE (see docs/guides/hw5-final-push-plan.md):
+#   - migration 007 (user_sections, saved_reports)         sudo mysql < ~/cse135/sql/007-…
+#   - chromium for export.php                              sudo apt install chromium
+#   - /var/lib/cse135/exports, owned by www-data           mkdir -p && chown
+#   - export_dir= and chromium= keys in /etc/cse135/db.ini
 # Merge into the certbot-generated -le-ssl.conf; do not overwrite it.
 #
 # ---------------------------------------------------------------------------
@@ -43,6 +50,12 @@
     # application and serve the old HW1 placeholder instead. The HW1 stub has been
     # deleted from the repo; this makes the intent explicit regardless.
     DirectoryIndex index.php index.html
+
+    # HW5: contingency pages. The application renders its own 403s with a reason
+    # (wrong section, viewer on a live report); these cover what never reaches PHP —
+    # a bad URL, or a request into /app/ which the block below denies.
+    ErrorDocument 404 /404.php
+    ErrorDocument 403 /403.php
 
     <Directory "/var/www/reporting.ucsdwrestlingclub.com">
         Options -Indexes +FollowSymLinks

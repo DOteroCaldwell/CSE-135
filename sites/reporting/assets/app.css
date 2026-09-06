@@ -218,6 +218,32 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1
 .notice-error { background: #fdecea; border: 1px solid #f5b7b1; color: #922b21; }
 .notice-ok    { background: #eafaf1; border: 1px solid #a9dfbf; color: #1e6b45; }
 
+/* ------------------------------------------------------- reports (HW5) */
+
+.report-scope { color: var(--ink-soft); font-size: 14px; margin: 0 0 16px; }
+.section-badge { vertical-align: middle; margin-left: 8px; }
+h1 .section-badge { font-size: 11px; }
+
+/* "Save this view" sits collapsed under the scope line; <details> needs no script. */
+details.save-view { margin: 0 0 22px; border: 1px solid var(--line); border-radius: var(--radius);
+                    background: var(--surface); }
+details.save-view summary { cursor: pointer; padding: 10px 16px; font-weight: 600; font-size: 14px;
+                            color: var(--accent); list-style: revert; }
+details.save-view[open] summary { border-bottom: 1px solid var(--line); }
+.save-form { display: grid; gap: 12px; padding: 14px 16px; }
+textarea { width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 6px;
+           font: inherit; background: #fff; resize: vertical; }
+textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent); }
+.export-form { margin: -6px 0 18px; }
+
+/* Section checkboxes on the user form. */
+fieldset.sections { border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px 10px;
+                    margin: 0; min-width: 260px; }
+fieldset.sections legend { font-weight: 600; font-size: 13px; padding: 0 4px; }
+fieldset.sections label.check { display: inline-flex; align-items: center; gap: 6px;
+                                font-weight: 500; font-size: 14px; margin-right: 14px; }
+fieldset.sections input[type=checkbox] { margin: 0; }
+
 /* ------------------------------------------------- bare pages (login/logout) */
 
 body.bare { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
@@ -303,4 +329,21 @@ ul.legend li.is-winner { color: var(--ink); font-weight: 600; }
   font-weight: 500; font-size: 12.5px; color: var(--ink-soft);
   text-align: right; padding-right: 10px; white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ------------------------------------------------------------- print / PDF */
+
+/* export.php prints a saved report through headless Chromium, which applies print
+   media. Everything interactive goes; every card stays whole on its page. */
+@media print {
+  body { background: #fff; color: #000; font-size: 12.5px; }
+  .topbar, .pagefoot, details.save-view, .export-form, .filters,
+  .report-scope a, .notice-ok, .charts-css .tooltip { display: none !important; }
+  main, main.wide { max-width: none; padding: 0; }
+  .card, .verdict { break-inside: avoid; page-break-inside: avoid; box-shadow: none; }
+  .grid-2 { display: block; }
+  .grid-2 .card { margin-bottom: 16px; }
+  .scroll-x { overflow: visible; }
+  table.data th, table.data td { white-space: normal; }
+  a { color: inherit; text-decoration: none; }
 }

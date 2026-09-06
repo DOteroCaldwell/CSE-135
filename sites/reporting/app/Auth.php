@@ -11,7 +11,7 @@ defined('CSE135_APP') || exit;
  */
 final class Auth
 {
-    /** Roles, ordered. HW4 uses the two ends; HW5 adds section scoping to analyst. */
+    /** Roles, ordered least to most privileged. See sections() for what each may open. */
     public const ROLES = ['viewer', 'analyst', 'super_admin'];
 
     private const SESSION_KEY  = 'uid';
@@ -29,6 +29,9 @@ final class Auth
 
     private static ?array $cached = null;
     private static bool $loaded = false;
+
+    /** @var string[]|null sections the current user may view, memoised */
+    private static ?array $sections = null;
 
     /* ------------------------------------------------------------- lookup -- */
 
@@ -87,14 +90,91 @@ final class Auth
         return $u === null ? null : (string) $u['role'];
     }
 
+    public static function isViewer(): bool
+    {
+        return self::role() === 'viewer';
+    }
+
+    public static function isAnalyst(): bool
+    {
+        return self::role() === 'analyst';
+    }
+
     /**
-     * HW5 seam. Section-scoped authorisation hangs off this: today every signed-in
-     * role may read the one section that exists, and a viewer is read-only, which
-     * is already true because no viewer-reachable page writes anything.
+     * Who may create saved reports and exports: anyone whose job is analysis.
+     * A viewer's whole definition is that they consume what analysts publish.
      */
+    public static function canPublish(): bool
+    {
+        return self::isAdmin() || self::isAnalyst();
+    }
+
+    /**
+     * Authenticate a request WITHOUT a session — used by the REST API's HTTP Basic
+     * path so the section check that follows sees the same identity the
+     * dashboard would. Nothing is written to $_SESSION; the identity lives for
+     * this request only.
+     */
+    public static function actAs(array $user): void
+    {
+        self::$cached   = $user;
+        self::$loaded   = true;
+        self::$sections = null;
+    }
+
+    /* ---------------------------------------------------------- sections -- */
+
+    /**
+     * The sections this account may open live reports for.
+     *
+     *   super_admin  every section, with no lookup: user management is theirs, so
+     *                a table that could lock them out of a report is not consulted
+     *   analyst      exactly the rows in user_sections. Empty means empty. An
+     *                analyst with no sections sees a clear message, not a quietly
+     *                widened scope.
+     *   viewer       none. Viewers read saved reports, which are checked by the
+     *                saved report's own section rather than by this list.
+     *
+     * @return string[]
+     */
+    public static function sections(): array
+    {
+        if (self::$sections !== null) {
+            return self::$sections;
+        }
+        $u = self::user();
+        if ($u === null || $u['role'] === 'viewer') {
+            return self::$sections = [];
+        }
+        if ((int) $u['is_admin'] === 1) {
+            return self::$sections = Sections::keys();
+        }
+        return self::$sections = self::sectionsFor((int) $u['id']);
+    }
+
+    /** Sections granted to one analyst, straight from the table. @return string[] */
+    public static function sectionsFor(int $userId): array
+    {
+        $rows = Db::all('SELECT section FROM user_sections WHERE user_id = ?', [$userId]);
+        return Sections::normalise(array_column($rows, 'section'));
+    }
+
     public static function canViewSection(string $section): bool
     {
-        return self::check();
+        return in_array($section, self::sections(), true);
+    }
+
+    /**
+     * Whether this account may open a particular SAVED report. Admin: any.
+     * Analyst: those in their sections. Viewer: every saved report — that is the
+     * one thing a viewer is for.
+     */
+    public static function canViewSaved(string $section): bool
+    {
+        if (!self::check()) {
+            return false;
+        }
+        return self::isViewer() || self::canViewSection($section);
     }
 
     /* --------------------------------------------------------------- gates -- */
@@ -123,6 +203,49 @@ final class Auth
                 'Not allowed',
                 'User management is restricted to administrators. You are signed in, '
                 . 'but this account does not have that permission.'
+            );
+        }
+    }
+
+    /**
+     * Gate for a live report page. Anonymous visitors go to the login form; a
+     * signed-in account outside the section gets a 403 that says WHY, because the
+     * two reasons call for different actions: a viewer should go to the saved
+     * reports, an unassigned analyst should ask an administrator.
+     */
+    public static function requireSection(string $section): void
+    {
+        self::requireLogin();
+        if (self::canViewSection($section)) {
+            return;
+        }
+        $label = Sections::label($section);
+        if (self::isViewer()) {
+            render_error_page(
+                403,
+                'Saved reports only',
+                'This account is a viewer. Viewers open reports that an analyst has '
+                . 'saved, not the live ' . $label . ' section. Use the Saved reports '
+                . 'link in the navigation.'
+            );
+        }
+        render_error_page(
+            403,
+            'Not your section',
+            'You are signed in, but this account is not assigned to the ' . $label
+            . ' section. An administrator can change that from User management.'
+        );
+    }
+
+    /** Gate for actions that create saved reports or exports. */
+    public static function requirePublisher(): void
+    {
+        self::requireLogin();
+        if (!self::canPublish()) {
+            render_error_page(
+                403,
+                'Not allowed',
+                'Saving and exporting reports is an analyst action. This account is a viewer.'
             );
         }
     }
@@ -181,8 +304,9 @@ final class Auth
         $_SESSION[self::SESSION_KEY] = (int) $user['id'];
         $_SESSION['login_at'] = time();
 
-        self::$loaded = false;
-        self::$cached = null;
+        self::$loaded   = false;
+        self::$cached   = null;
+        self::$sections = null;
     }
 
     public static function logout(): void
@@ -204,8 +328,9 @@ final class Auth
         }
 
         session_destroy();
-        self::$loaded = true;
-        self::$cached = null;
+        self::$loaded   = true;
+        self::$cached   = null;
+        self::$sections = null;
     }
 
     /* ---------------------------------------------------------- throttling -- */

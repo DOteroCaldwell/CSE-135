@@ -18,14 +18,22 @@ declare(strict_types=1);
  * Usage:
  *   php make-users.php > ../../sql/004-seed-users.sql        # prompts
  *   php make-users.php --print-only                          # inspect first
- *   php make-users.php --admin=... --basic=... --grader=...  # non-interactive
+ *   php make-users.php --admin=... --basic=... --viewer=... --perf=...   # non-interactive
+ *
+ * HW5 accounts, one per authorisation level the grader has to see:
+ *   grader-admin   super_admin   everything, including user management
+ *   grader-basic   analyst       all three sections
+ *   grader-perf    analyst       performance section ONLY (the "Sam" case)
+ *   grader-viewer  viewer        saved reports only
+ * The section rows for the two analysts are written here too, so a fresh
+ * database is fully set up by this one file after 007 has been applied.
  *
  * Then apply as usual:
  *   sudo mysql < 004-seed-users.sql
  */
 
-$opt = getopt('', ['admin::', 'basic::', 'grader::', 'grader-only', 'no-grader',
-                   'print-only', 'help']);
+$opt = getopt('', ['admin::', 'basic::', 'viewer::', 'perf::', 'grader::', 'grader-only',
+                   'no-grader', 'print-only', 'help']);
 $graderOnly = isset($opt['grader-only']);   // emit 005 instead of 004
 
 if (isset($opt['help'])) {
@@ -57,6 +65,8 @@ if ($graderOnly) {
 } else {
     $admin  = (string) ($opt['admin'] ?? '') ?: ask('grader-admin');
     $basic  = (string) ($opt['basic'] ?? '') ?: ask('grader-basic');
+    $viewer = (string) ($opt['viewer'] ?? '') ?: ask('grader-viewer');
+    $perf   = (string) ($opt['perf'] ?? '') ?: ask('grader-perf');
     $grader = null;
 }
 
@@ -75,7 +85,7 @@ $header = <<<SQL
 -- Re-running RESETS these passwords to whatever was supplied at generation time.
 --
 -- BEFORE THIS SITE GOES PUBLIC: delete these accounts.
---   DELETE FROM users WHERE username IN ('grader-admin','grader-basic','grader');
+--   DELETE FROM users WHERE username IN ('grader-admin','grader-basic','grader-perf','grader-viewer','grader');
 -- Create a real administrator first — users.php refuses to remove the last one.
 
 USE cse135;
@@ -102,12 +112,30 @@ INSERT INTO users (username, email, password_hash, role, created_at) VALUES
   ('grader-admin', 'grader-admin@ucsdwrestlingclub.com',
    '{$h($admin)}', 'super_admin', UTC_TIMESTAMP()),
   ('grader-basic', 'grader-basic@ucsdwrestlingclub.com',
-   '{$h($basic)}', 'analyst', UTC_TIMESTAMP())
+   '{$h($basic)}', 'analyst', UTC_TIMESTAMP()),
+  ('grader-perf', 'grader-perf@ucsdwrestlingclub.com',
+   '{$h($perf)}', 'analyst', UTC_TIMESTAMP()),
+  ('grader-viewer', 'grader-viewer@ucsdwrestlingclub.com',
+   '{$h($viewer)}', 'viewer', UTC_TIMESTAMP())
 ON DUPLICATE KEY UPDATE
   password_hash = VALUES(password_hash),
   role          = VALUES(role),
   email         = VALUES(email),
   updated_at    = UTC_TIMESTAMP();
+
+-- Section scoping (HW5, needs 007). Rewritten in full so re-running restores the
+-- documented state even if a grader changed it mid-marking.
+DELETE us FROM user_sections us
+  JOIN users u ON u.id = us.user_id
+ WHERE u.username IN ('grader-basic', 'grader-perf');
+INSERT INTO user_sections (user_id, section)
+SELECT id, s.section FROM users
+  JOIN (SELECT 'performance' AS section
+        UNION ALL SELECT 'behaviour'
+        UNION ALL SELECT 'audience') s
+ WHERE username = 'grader-basic';
+INSERT INTO user_sections (user_id, section)
+SELECT id, 'performance' FROM users WHERE username = 'grader-perf';
 
 SQL;
 }

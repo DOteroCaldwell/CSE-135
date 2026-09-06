@@ -2,11 +2,14 @@
 declare(strict_types=1);
 
 /**
- * CSE 135 HW4 Part 2 — user management.
+ * CSE 135 HW4 Part 2 / HW5 — user management.
  *
  * Admin-only CRUD over the users table. Every action is a plain form POST, so the
  * page is fully functional with JavaScript disabled — including the delete
  * confirmation, which is a real interstitial page rather than a confirm() dialog.
+ *
+ * HW5 adds the analyst's section list (user_sections): which report categories an
+ * analyst may open. It is edited on the same form as the account.
  */
 
 require_once __DIR__ . '/app/bootstrap.php';
@@ -59,6 +62,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $email    = trim((string) ($_POST['email'] ?? ''));
         $password = (string) ($_POST['password'] ?? '');
         $role     = (string) ($_POST['role'] ?? 'viewer');
+        $sections = Sections::normalise(is_array($_POST['sections'] ?? null) ? $_POST['sections'] : []);
 
         if (!valid_username($username)) {
             $errors[] = 'Username must be 3–64 characters, letters/digits/._- only.';
@@ -68,6 +72,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         }
         if (!in_array($role, Auth::ROLES, true)) {
             $errors[] = 'Unknown role.';
+        }
+        // An analyst with no sections would sign in to a dashboard with nothing on
+        // it. Refuse rather than let that be created by accident; a viewer is the
+        // role for "may not open live data".
+        if ($role === 'analyst' && $sections === []) {
+            $errors[] = 'Pick at least one section for an analyst, or make this account a viewer.';
         }
         if ($action === 'create' && strlen($password) < 8) {
             $errors[] = 'Password must be at least 8 characters.';
@@ -83,11 +93,14 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 
         if ($errors === []) {
             try {
+                $pdo = Db::conn();
+                $pdo->beginTransaction();
                 if ($action === 'create') {
-                    Db::conn()->prepare(
+                    $pdo->prepare(
                         'INSERT INTO users (username, email, password_hash, role, created_at)
                          VALUES (?, ?, ?, ?, UTC_TIMESTAMP())'
                     )->execute([$username, $email, password_hash($password, PASSWORD_DEFAULT), $role]);
+                    $id = (int) $pdo->lastInsertId();
                     $ok = 'Created ' . $username . '.';
                 } else {
                     // is_admin is a generated column derived from role; it is never
@@ -107,7 +120,22 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                     }
                     $ok = 'Updated ' . $username . '.';
                 }
+
+                // Sections are meaningful for analysts only. Admins see everything
+                // regardless and viewers see no live section, so both get no rows;
+                // rewriting the set in full keeps the table equal to the form.
+                $pdo->prepare('DELETE FROM user_sections WHERE user_id = ?')->execute([$id]);
+                if ($role === 'analyst') {
+                    $ins = $pdo->prepare('INSERT INTO user_sections (user_id, section) VALUES (?, ?)');
+                    foreach ($sections as $sec) {
+                        $ins->execute([$id, $sec]);
+                    }
+                }
+                $pdo->commit();
             } catch (PDOException $e) {
+                if (Db::conn()->inTransaction()) {
+                    Db::conn()->rollBack();
+                }
                 if ($e->getCode() === '23000') {
                     $errors[] = 'That username or email is already taken.';
                 } else {
@@ -134,9 +162,13 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
 /* -------------------------------------------------------------- page state -- */
 
 $editing = null;
+$editingSections = Sections::keys();   // a new analyst starts with every section
 if (isset($_GET['edit'])) {
     $editing = Db::one('SELECT id, username, email, role FROM users WHERE id = ?',
                        [(int) $_GET['edit']]);
+    if ($editing !== null && $editing['role'] === 'analyst') {
+        $editingSections = Auth::sectionsFor((int) $editing['id']);
+    }
 }
 
 $confirming = null;
@@ -146,9 +178,27 @@ if (isset($_GET['delete'])) {
 }
 
 $users = Db::all(
-    'SELECT id, username, email, password_hash, role, is_admin, created_at, updated_at
-       FROM users ORDER BY role DESC, username ASC'
+    'SELECT u.id, u.username, u.email, u.password_hash, u.role, u.is_admin,
+            u.created_at, u.updated_at,
+            GROUP_CONCAT(us.section ORDER BY us.section) AS sections
+       FROM users u
+       LEFT JOIN user_sections us ON us.user_id = u.id
+      GROUP BY u.id
+      ORDER BY u.role DESC, u.username ASC'
 );
+
+/** What the grid shows in the Sections column, per role. */
+function describe_sections(array $u): string
+{
+    return match ($u['role']) {
+        'super_admin' => 'all (administrator)',
+        'viewer'      => 'saved reports only',
+        default       => $u['sections'] === null || $u['sections'] === ''
+            ? 'none — cannot open any live report'
+            : implode(', ', array_map([Sections::class, 'label'],
+                Sections::normalise(explode(',', (string) $u['sections'])))),
+    };
+}
 
 layout_header('User management', [
     'subtitle' => 'Create, edit and remove accounts that can sign in to this dashboard.',
@@ -211,6 +261,13 @@ if ($confirming !== null):
 <?php endforeach; ?>
         </select>
      </label>
+      <fieldset class="field sections">
+        <legend>Analyst sections</legend>
+<?php foreach (Sections::keys() as $sec): ?>
+        <label class="check"><input type="checkbox" name="sections[]" value="<?= e($sec) ?>"<?= in_array($sec, $editingSections, true) ? ' checked' : '' ?>> <?= e(Sections::label($sec)) ?></label>
+<?php endforeach; ?>
+        <span class="card-question" style="margin:4px 0 0">Applies to analysts only. Administrators see everything; viewers see saved reports.</span>
+      </fieldset>
       <p class="field" style="min-width:auto"><button class="btn" type="submit"><?= $editing ? 'Save changes' : 'Create user' ?></button></p>
 <?php if ($editing): ?>
       <p class="field" style="min-width:auto"><a class="btn btn-quiet" href="/users.php">Cancel</a></p>
@@ -228,7 +285,7 @@ if ($confirming !== null):
   <table class="data">
     <thead>
       <tr>
-        <th>Username</th><th>Email</th><th>Role</th><th>Admin</th>
+        <th>Username</th><th>Email</th><th>Role</th><th>Admin</th><th>Sections</th>
         <th>Password hash</th><th>Created</th><th>Actions</th>
       </tr>
     </thead>
@@ -239,6 +296,7 @@ if ($confirming !== null):
         <td><?= e($u['email']) ?></td>
         <td><?= e(str_replace('_', ' ', $u['role'])) ?></td>
         <td><?= ((int) $u['is_admin'] === 1) ? 'yes' : 'no' ?></td>
+        <td><?= e(describe_sections($u)) ?></td>
         <td class="wrap"><code><?= e($u['password_hash']) ?></code></td>
         <td><?= e($u['created_at']) ?></td>
         <td>

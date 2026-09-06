@@ -47,7 +47,9 @@ function chart_stacked_bar(array $rows, array $series, array $opts = []): void
     }
     // One shared scale across rows so bar lengths are comparable between pages.
     $max = max(array_map(static fn($r) => (float) $r['total'], $rows)) ?: 1.0;
-    $unit = $opts['unit'] ?? 'ms';
+    // Segment labels default to milliseconds (the load-phase chart); a chart of
+    // counts passes its own formatter, e.g. 'format' => fn($v) => fmt_int($v) . ' views'.
+    $fmt = $opts['format'] ?? 'fmt_ms';
     ?>
 <figure class="chart-wrap">
   <table class="charts-css bar multiple stacked show-labels" style="--labels-size:<?= e($opts['labelWidth'] ?? 'clamp(88px, 22vw, 190px)') ?>">
@@ -58,8 +60,8 @@ function chart_stacked_bar(array $rows, array $series, array $opts = []): void
 <?php $i = 0; foreach ($series as $key => $label): $v = (float) ($r['parts'][$key] ?? 0);
       $win = isset($opts['highlight']) && $key === $opts['highlight']; ?>
         <td<?= $win ? ' class="is-winner"' : '' ?> style="--size:calc(<?= round($v, 3) ?>/<?= round($max, 3) ?>);--color:<?= chart_color($i) ?><?= $win ? ';--outline-color:' . chart_outline_color($i) : '' ?>">
-          <span class="data"><?= $v > $max * 0.12 ? e(fmt_ms($v)) : '' ?></span>
-          <span class="tooltip"><?= e($label . ': ' . fmt_ms($v)) ?></span>
+          <span class="data"><?= $v > $max * 0.12 ? e($fmt($v)) : '' ?></span>
+          <span class="tooltip"><?= e($label . ': ' . $fmt($v)) ?></span>
         </td>
 <?php $i++; endforeach; ?>
       </tr>
@@ -77,6 +79,10 @@ function chart_stacked_bar(array $rows, array $series, array $opts = []): void
 /**
  * Grouped column chart: one column group per bin, one bar per series.
  * Used for the cold/warm distribution, where comparing the two SHAPES is the point.
+ *
+ * With a single series the groups are one column each and Charts.css draws them
+ * edge to edge, which reads as a filled area rather than columns; data-spacing-10
+ * puts the gap back.
  */
 function chart_column_multi(array $bins, array $series, array $opts = []): void
 {
@@ -93,7 +99,7 @@ function chart_column_multi(array $bins, array $series, array $opts = []): void
     $max = $max ?: 1.0;
     ?>
 <figure class="chart-wrap">
-  <table class="charts-css column multiple show-labels show-primary-axis" style="height:260px;--labels-size:2rem">
+  <table class="charts-css column multiple show-labels show-primary-axis<?= count($series) === 1 ? ' data-spacing-10' : '' ?>" style="height:260px;--labels-size:2rem">
     <tbody>
 <?php foreach ($bins as $b): ?>
       <tr>
@@ -119,6 +125,10 @@ function chart_column_multi(array $bins, array $series, array $opts = []): void
 /**
  * Single-series horizontal bar, for rankings.
  *
+ * The first row is drawn in the accent colour because a ranking has a winner.
+ * Pass 'uniform' => true when the rows are ordered categories (cohorts, bands)
+ * rather than a ranking, so the first row is not falsely marked as "the answer".
+ *
  * @param array $rows [['label'=>string,'value'=>float,'note'=>?string], ...]
  */
 function chart_ranked_bar(array $rows, array $opts = []): void
@@ -136,7 +146,7 @@ function chart_ranked_bar(array $rows, array $opts = []): void
 <?php foreach ($rows as $idx => $r): $v = (float) $r['value']; ?>
       <tr>
         <th scope="row"><?= e($r['label']) ?></th>
-        <td style="--size:calc(<?= round($v, 3) ?>/<?= round($max, 3) ?>);--color:<?= chart_color($idx === 0 ? 2 : 4) ?>">
+        <td style="--size:calc(<?= round($v, 3) ?>/<?= round($max, 3) ?>);--color:<?= chart_color(!empty($opts['uniform']) ? 3 : ($idx === 0 ? 2 : 4)) ?>">
           <span class="data"><?= e($fmt($v)) ?></span>
         </td>
       </tr>

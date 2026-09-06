@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * CSE 135 HW3 Part 5 — REST API over the analytics tables.
+ * CSE 135 HW3 Part 5 / HW5 — REST API over the analytics tables.
  *
  *   GET    /api/<resource>        all rows
  *   GET    /api/<resource>/{id}   one row
@@ -258,8 +258,14 @@ function requireApiAuth(): void
     }
 
     $creds = basicCredentials();
-    if ($creds !== null && Auth::attempt($creds[0], $creds[1]) !== null) {
-        return;
+    if ($creds !== null) {
+        $user = Auth::attempt($creds[0], $creds[1]);
+        if ($user !== null) {
+            // Same identity the dashboard would have, so the section check below
+            // applies to curl exactly as it applies to a browser session.
+            Auth::actAs($user);
+            return;
+        }
     }
 
     header('WWW-Authenticate: Basic realm="CSE135 Analytics API"');
@@ -267,6 +273,45 @@ function requireApiAuth(): void
 }
 
 requireApiAuth();
+
+/*
+ * HW5: authorisation, after authentication.
+ *
+ * The API is the raw form of the same data the reports show, so it obeys the same
+ * section rules: an analyst scoped to performance can pull /api/performance and
+ * /api/resources and gets 403 on /api/activity. A viewer is defined as someone who
+ * reads saved reports, so the raw API is closed to them entirely. `sessions` is
+ * the join key for every section and is open to anyone who holds at least one.
+ *
+ * 403 rather than 404: the caller is authenticated and the resource exists; hiding
+ * it would only make a misconfigured account harder to diagnose.
+ */
+const RESOURCE_SECTION = [
+    'sessions'    => null,
+    'static'      => 'audience',
+    'performance' => 'performance',
+    'resources'   => 'performance',
+    'activity'    => 'behaviour',
+];
+
+function requireApiSection(string $resource): void
+{
+    if (Auth::isViewer()) {
+        fail(403, 'viewer accounts may only open saved reports; the raw API is closed to them');
+    }
+    $section = RESOURCE_SECTION[$resource] ?? null;
+    if ($section === null) {
+        if (Auth::sections() === []) {
+            fail(403, 'this account is not assigned to any section');
+        }
+        return;
+    }
+    if (!Auth::canViewSection($section)) {
+        fail(403, "this account is not assigned to the '$section' section, which owns /api/$resource", [
+            'your_sections' => Auth::sections(),
+        ]);
+    }
+}
 
 /* ------------------------------------------------------------------ route -- */
 
@@ -293,6 +338,10 @@ if (count($segments) > 2) {
 if ($resource === '') {
     $index = [];
     foreach (array_keys($RESOURCES) as $name) {
+        $sec = RESOURCE_SECTION[$name] ?? null;
+        if (Auth::isViewer() || ($sec !== null && !Auth::canViewSection($sec))) {
+            continue;   // listed only if the caller could actually GET it
+        }
         $index[$name] = [
             'collection' => "/api/$name",
             'item'       => "/api/$name/{id}",
@@ -304,6 +353,8 @@ if ($resource === '') {
 if (!isset($RESOURCES[$resource])) {
     fail(404, "unknown resource '$resource'", ['available' => array_keys($RESOURCES)]);
 }
+
+requireApiSection($resource);
 
 $spec  = $RESOURCES[$resource];
 $table = $spec['table'];

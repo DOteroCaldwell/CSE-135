@@ -5,3 +5,10 @@ port = 3306
 name = cse135
 user = cse135_app
 pass = localdevpassword
+
+; HW5 — PDF export (export.php). Both optional.
+;   export_dir  where generated PDFs are written. MUST be outside every web root;
+;               www-data needs write access (mkdir -p, chown www-data).
+;   chromium    the headless renderer. If unset, the usual binary names are tried.
+export_dir = /tmp/cse135-exports
+chromium = chromium

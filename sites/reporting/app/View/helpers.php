@@ -47,6 +47,14 @@ function render_error_page(int $code, string $title, string $message): never
     exit;
 }
 
+/** Inverse of Filters::toQuery(): a stored query string back into an array. */
+function query_to_array(string $query): array
+{
+    $out = [];
+    parse_str(ltrim($query, '?'), $out);
+    return is_array($out) ? $out : [];
+}
+
 /* ------------------------------------------------------------- formatting -- */
 
 /** Milliseconds, scaled so a table of them stays readable. */

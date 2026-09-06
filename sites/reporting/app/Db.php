@@ -10,6 +10,26 @@ defined('CSE135_APP') || exit;
 final class Db
 {
     private static ?PDO $pdo = null;
+    private static ?array $cfg = null;
+
+    /**
+     * The parsed /etc/cse135/db.ini. Besides the connection it carries the two
+     * HW5 export settings (`export_dir`, `chromium`), which live here rather than
+     * in a second file because there is exactly one place on the droplet that is
+     * root-owned, www-data-readable and outside every web root — and this is it.
+     */
+    public static function config(): array
+    {
+        if (self::$cfg !== null) {
+            return self::$cfg;
+        }
+        $cfg = @parse_ini_file(DB_CONFIG_PATH);
+        if (!is_array($cfg) || !isset($cfg['name'], $cfg['user'], $cfg['pass'])) {
+            error_log('[cse135/app] cannot read ' . DB_CONFIG_PATH);
+            self::fatal();
+        }
+        return self::$cfg = $cfg;
+    }
 
     public static function conn(): PDO
     {
@@ -17,11 +37,7 @@ final class Db
             return self::$pdo;
         }
 
-        $cfg = @parse_ini_file(DB_CONFIG_PATH);
-        if (!is_array($cfg) || !isset($cfg['name'], $cfg['user'], $cfg['pass'])) {
-            error_log('[cse135/app] cannot read ' . DB_CONFIG_PATH);
-            self::fatal();
-        }
+        $cfg = self::config();
 
         $dsn = sprintf(
             'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',

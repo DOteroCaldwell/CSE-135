@@ -2,15 +2,16 @@
 declare(strict_types=1);
 
 /**
- * CSE 135 HW4 Part 3 — reporting dashboard.
+ * CSE 135 HW4 Part 3 / HW5 — reporting dashboard.
  *
- * Everything on this page serves one question:
+ * The performance cards serve one question:
  *
  *   If we could fix one thing about this site's performance, what should it be,
  *   and what is it worth?
  *
- * The dashboard is the overview — where time goes, who it goes to, and which pages
- * carry it. The detailed report drills into the verdict.
+ * HW5 adds one card per further section — behaviour, audience — each an overview
+ * that links to its full report. Cards render only for the sections this account
+ * is assigned to; a viewer never reaches this page at all.
  *
  * No JavaScript. Filters are a GET form, charts are CSS, so the whole page works
  * with scripting disabled and every view has a shareable URL.
@@ -22,18 +23,40 @@ require_once __DIR__ . '/app/View/charts.php';
 
 Auth::requireLogin();
 
-$f = Filters::fromQuery($_GET);
+// A viewer's application is the saved-reports list. Sending them here would show
+// a page whose every link 403s.
+if (Auth::isViewer()) {
+    redirect('/saved/');
+}
 
-$breakdown = MetricRegistry::get('load-phase-breakdown')->compute($f);
-$cohort    = MetricRegistry::get('cache-cohort-split')->compute($f);
-$pages     = MetricRegistry::get('slowest-pages')->compute($f);
-$opp       = MetricRegistry::get('opportunity')->compute($f);
+$f = Filters::fromQuery($_GET);
+$mySections = Auth::sections();
+
+$hasPerf = in_array('performance', $mySections, true);
+if ($hasPerf) {
+    $breakdown = MetricRegistry::get('load-phase-breakdown')->compute($f);
+    $cohort    = MetricRegistry::get('cache-cohort-split')->compute($f);
+    $pages     = MetricRegistry::get('slowest-pages')->compute($f);
+    $opp       = MetricRegistry::get('opportunity')->compute($f);
+}
 
 $hosts = PageviewSet::distinct('host');
 $pageList = PageviewSet::distinct('page');
 
-layout_header('Performance dashboard', [
-    'subtitle' => 'If we could fix one thing about this site\'s performance, what should it be — and what is it worth?',
+$hasBehaviour = in_array('behaviour', $mySections, true);
+$hasAudience  = in_array('audience', $mySections, true);
+if ($hasBehaviour) {
+    $depth = MetricRegistry::get('scroll-depth')->compute($f);
+    $lve   = MetricRegistry::get('load-vs-engagement')->compute($f);
+}
+if ($hasAudience) {
+    $vp = MetricRegistry::get('viewport-classes')->compute($f);
+}
+
+layout_header('Dashboard', [
+    'subtitle' => $hasPerf
+        ? 'If we could fix one thing about this site\'s performance, what should it be — and what is it worth?'
+        : 'Overview of the sections this account is assigned to. Each card links to its full report.',
     'wide'     => true,
 ]);
 ?>
@@ -56,7 +79,7 @@ layout_header('Performance dashboard', [
     </select>
  </label>
   <label class="field" for="cache">
-    Cache state<select id="cache" name="cache">
+    Cache state (performance only)<select id="cache" name="cache">
 <?php foreach (['all' => 'First and return visits', 'cold' => 'First visits only', 'warm' => 'Return visits only'] as $k => $lbl): ?>
       <option value="<?= e($k) ?>"<?= $f->cache === $k ? ' selected' : '' ?>><?= e($lbl) ?></option>
 <?php endforeach; ?>
@@ -78,6 +101,18 @@ layout_header('Performance dashboard', [
   <p class="field" style="min-width:auto"><a class="btn btn-quiet" href="/">Reset</a></p>
 </form>
 
+<?php if ($mySections === []): ?>
+  <section class="card">
+    <h2>No sections assigned</h2>
+    <p class="card-question">
+      This analyst account is not assigned to any report section yet, so there is
+      nothing to show here. An administrator can assign sections from User management.
+    </p>
+  </section>
+<?php endif; ?>
+
+<?php /* ---------------------------------------------------- performance --- */ ?>
+<?php if ($hasPerf): ?>
 <?php if ($opp->isEmpty()): ?>
   <section class="card">
     <h2>No performance data yet</h2>
@@ -188,5 +223,71 @@ data_table([
   <?php coverage_badge($pages->coverage); ?>
 </section>
 
+<?php endif; ?>
+<?php endif; /* performance */ ?>
+
+<?php /* ------------------------------------------ behaviour + audience --- */ ?>
+<?php if ($hasBehaviour || $hasAudience): ?>
+<div class="grid-2">
+<?php if ($hasBehaviour): ?>
+  <section class="card">
+    <h2>How far visitors scroll <span class="role section-badge">Behaviour</span></h2>
+    <p class="card-question"><?= e(MetricRegistry::get('scroll-depth')->question()) ?></p>
+<?php if ($depth->isEmpty()): ?>
+    <p class="card-question">No activity recorded for these filters.</p>
+<?php else: ?>
+<?php
+    chart_stacked_bar(array_map(static fn($r) => [
+        'label' => $r['page'], 'parts' => $r['parts'], 'total' => $r['n'],
+    ], array_slice($depth->rows, 0, 6)), ScrollDepth::labels(), [
+        'caption' => 'Pageviews per page, split by the deepest quarter of the page reached.',
+        'format'  => static fn($v) => fmt_int((float) $v) . ($v == 1 ? ' view' : ' views'),
+    ]);
+?>
+    <p class="card-question" style="margin-top:14px">
+      <?= e(fmt_pct($depth->summary['reached_half'])) ?> of pageviews reach halfway.
+<?php if (($lve->summary['verdict'] ?? null) === 'costs'): ?>
+      Slow loads cost attention: <?= e(fmt_pct($lve->summary['fast_half'])) ?> of the fastest
+      quarter of loads reach halfway, <?= e(fmt_pct($lve->summary['slow_half'])) ?> of the slowest.
+<?php elseif (($lve->summary['verdict'] ?? null) === 'no-clear-link'): ?>
+      Load time does not clearly predict engagement in this data.
+<?php endif; ?>
+      <a href="/reports/engagement.php<?= e($f->toQuery()) ?>">Engagement report →</a>
+    </p>
+    <?php coverage_badge($depth->coverage); ?>
+<?php endif; ?>
+  </section>
+<?php endif; ?>
+
+<?php if ($hasAudience): ?>
+  <section class="card">
+    <h2>Viewport sizes <span class="role section-badge">Audience</span></h2>
+    <p class="card-question"><?= e(MetricRegistry::get('viewport-classes')->question()) ?></p>
+<?php if (($vp->summary['pageviews'] ?? 0) === 0): ?>
+    <p class="card-question">No static pageview rows for these filters.</p>
+<?php else: ?>
+<?php
+    chart_column_multi(array_map(static fn($r) => [
+        'label' => $r['label'], 'axis' => $r['axis'], 'n' => $r['n'],
+    ], $vp->rows), ['n' => 'Pageviews'], [
+        'caption'     => 'Pageviews by viewport width class.',
+        'colorOffset' => 2,
+    ]);
+?>
+    <p class="card-question" style="margin-top:14px">
+<?php if (!empty($vp->summary['dominant_label'])): ?>
+      Design for <strong><?= e($vp->summary['dominant_label']) ?></strong>
+      (<?= e(fmt_pct($vp->summary['dominant_share'])) ?>)<?php
+      if (!empty($vp->summary['narrowest_label']) && $vp->summary['narrowest'] !== $vp->summary['dominant']): ?>;
+      never break on <strong><?= e($vp->summary['narrowest_label']) ?></strong>
+      (<?= e(fmt_pct($vp->summary['narrowest_share'])) ?>)<?php endif; ?>.
+<?php endif; ?>
+      <a href="/reports/audience.php<?= e($f->toQuery()) ?>">Audience report →</a>
+    </p>
+    <?php coverage_badge($vp->coverage); ?>
+<?php endif; ?>
+  </section>
+<?php endif; ?>
+</div>
 <?php endif; ?>
 <?php layout_footer(); ?>

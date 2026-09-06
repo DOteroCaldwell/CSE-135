@@ -15,3 +15,12 @@ port = 3306
 name = cse135
 user = cse135_app
 pass = CHANGE_ME
+
+; HW5 — PDF export (export.php). Both optional.
+;   export_dir  where generated PDFs are written. MUST be outside every web root;
+;               www-data needs write access (mkdir -p, chown www-data).
+;   chromium    the headless renderer, ABSOLUTE path (php-fpm's PATH is minimal).
+;               On Ubuntu 24.04 use Google Chrome's .deb: the `chromium-browser`
+;               apt package is a snap, and snaps will not run as www-data.
+export_dir = /var/lib/cse135/exports
+chromium = /usr/bin/google-chrome-stable

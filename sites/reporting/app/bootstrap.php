@@ -2,7 +2,7 @@
 declare(strict_types=1);
 
 /**
- * CSE 135 HW4 — application bootstrap.
+ * CSE 135 HW4/HW5 — application bootstrap.
  *
  * Every page under the reporting web root includes this first. It establishes the
  * include guard, configures and starts the session, and loads the small set of
@@ -51,5 +51,7 @@ require_once __DIR__ . '/Db.php';
 require_once __DIR__ . '/Csrf.php';
 // Before Auth: its guard methods call redirect() and render_error_page().
 require_once __DIR__ . '/View/helpers.php';
+require_once __DIR__ . '/Sections.php';
 require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/MetricRegistry.php';
+require_once __DIR__ . '/Reports.php';

@@ -9,6 +9,8 @@ require_once __DIR__ . '/MetricResult.php';
 require_once __DIR__ . '/Coverage.php';
 require_once __DIR__ . '/Metric.php';
 require_once __DIR__ . '/PageviewSet.php';
+require_once __DIR__ . '/ActivitySet.php';
+require_once __DIR__ . '/AudienceSet.php';
 
 foreach (glob(__DIR__ . '/Metrics/*.php') ?: [] as $file) {
     require_once $file;
@@ -29,6 +31,16 @@ final class MetricRegistry
         'slowest-pages'        => SlowestPages::class,
         'resource-weight'      => ResourceWeight::class,
         'opportunity'          => Opportunity::class,
+        // HW5 — behaviour section (activity table)
+        'scroll-depth'         => ScrollDepth::class,
+        'engagement-by-page'   => EngagementByPage::class,
+        'error-hotspots'       => ErrorHotspots::class,
+        'load-vs-engagement'   => LoadVsEngagement::class,
+        // HW5 — audience section (static table)
+        'viewport-classes'     => ViewportClasses::class,
+        'languages'            => Languages::class,
+        'browsers'             => Browsers::class,
+        'capabilities'         => Capabilities::class,
     ];
 
     /** @var array<string, Metric> */

@@ -125,12 +125,18 @@ $HOST  = 'test.ucsdwrestlingclub.com';
 // A deliberately varied fleet, so coverage checks have something to find and the
 // device-diversity caveat can actually clear.
 $DEVICES = [
-    ['ua' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36', 'sw'=>2560,'sh'=>1440,'ww'=>1440,'conn'=>'4g'],
-    ['ua' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36',        'sw'=>1920,'sh'=>1080,'ww'=>1280,'conn'=>'4g'],
-    ['ua' => 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1', 'sw'=>390,'sh'=>844,'ww'=>390,'conn'=>'3g'],
-    ['ua' => 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Mobile Safari/537.36',  'sw'=>412,'sh'=>915,'ww'=>412,'conn'=>'4g'],
-    ['ua' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15', 'sw'=>1680,'sh'=>1050,'ww'=>1440,'conn'=>null],
+    ['ua' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36', 'sw'=>2560,'sh'=>1440,'ww'=>1440,'wh'=>1240,'dpr'=>2,'conn'=>'4g','lang'=>'en-US','tz'=>'America/Los_Angeles'],
+    ['ua' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36',        'sw'=>1920,'sh'=>1080,'ww'=>1280,'wh'=>900, 'dpr'=>1,'conn'=>'4g','lang'=>'en-US','tz'=>'America/Los_Angeles'],
+    ['ua' => 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1', 'sw'=>390,'sh'=>844,'ww'=>390,'wh'=>664,'dpr'=>3,'conn'=>'3g','lang'=>'en-US','tz'=>'America/Los_Angeles'],
+    ['ua' => 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Mobile Safari/537.36',  'sw'=>412,'sh'=>915,'ww'=>412,'wh'=>780,'dpr'=>2.6,'conn'=>'4g','lang'=>'es-MX','tz'=>'America/Tijuana'],
+    ['ua' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15', 'sw'=>1680,'sh'=>1050,'ww'=>1440,'wh'=>860,'dpr'=>2,'conn'=>null,'lang'=>'en-GB','tz'=>'Europe/London'],
+    ['ua' => 'Mozilla/5.0 (iPad; CPU OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1', 'sw'=>820,'sh'=>1180,'ww'=>820,'wh'=>1060,'dpr'=>2,'conn'=>'4g','lang'=>'en-US','tz'=>'America/New_York'],
+    ['ua' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:127.0) Gecko/20100101 Firefox/127.0',                              'sw'=>1536,'sh'=>864,'ww'=>1536,'wh'=>730,'dpr'=>1.25,'conn'=>'4g','lang'=>'ko-KR','tz'=>'Asia/Seoul'],
 ];
+
+// How tall each page is, in CSS px, so scroll depth can be computed from scrollY.
+$PAGE_HEIGHT = ['/index.html' => 4200, '/products.html' => 6800, '/product-detail.html' => 3100,
+                '/checkout.html' => 2400, '/liquidation.html' => 5200];
 
 /* ---------------------------------------------------------------- inserts -- */
 
@@ -226,12 +232,14 @@ for ($s = 0; $s < $sessionCount; $s++) {
             $epoch, $epoch + $total, $total, 'PerformanceNavigationTiming',
             json_encode($t), $epoch + $total, $ts->format('Y-m-d H:i:s')]);
 
-        $insStatic->execute([$sid, $pvid, $page, $HOST, $ua, 'en-US',
-            $dev['sw'], $dev['sh'], $dev['ww'], (int) ($dev['sh'] * 0.8),
+        $insStatic->execute([$sid, $pvid, $page, $HOST, $ua, $dev['lang'],
+            $dev['sw'], $dev['sh'], $dev['ww'], $dev['wh'],
             $dev['conn'],
-            json_encode(['userAgent' => $ua, 'screen' => ['width' => $dev['sw'],
-                'height' => $dev['sh'], 'devicePixelRatio' => 2],
-                'connection' => $dev['conn'] ? ['effectiveType' => $dev['conn']] : null]),
+            json_encode(['userAgent' => $ua, 'language' => $dev['lang'],
+                'screen' => ['width' => $dev['sw'], 'height' => $dev['sh'], 'devicePixelRatio' => $dev['dpr']],
+                'window' => ['innerWidth' => $dev['ww'], 'innerHeight' => $dev['wh']],
+                'timezone' => $dev['tz'],
+                'connection' => $dev['conn'] ? ['effectiveType' => $dev['conn'], 'saveData' => $dev['conn'] === '3g'] : null]),
             $epoch + $total, $ts->format('Y-m-d H:i:s')]);
 
         /* -- the assets that produced that tail --------------------------- */
@@ -283,13 +291,33 @@ for ($s = 0; $s < $sessionCount; $s++) {
                 json_encode($detail ?: null), $epoch, $ts->format('Y-m-d H:i:s')]);
         };
 
-        $dwell = mt_rand(1500, 45000);
+        /*
+         * Engagement is made to DEPEND on load time, mildly: the slower the load,
+         * the more likely a quick bounce and the shallower the scroll. That is the
+         * relationship the behaviour report's load-vs-engagement section exists to
+         * detect, and a fixture with no such relationship would make a working
+         * metric look broken. The dependence is probabilistic, not a rule, so the
+         * report still has to find it in noise.
+         */
+        $height   = $PAGE_HEIGHT[$page] ?? 4000;
+        $slowness = min(1.0, $total / 3000);                      // 0 fast .. 1 very slow
+        $bounce   = (mt_rand() / mt_getrandmax()) < (0.08 + 0.45 * $slowness);
+        $dwell    = $bounce ? mt_rand(800, 4500) : mt_rand(6000, 60000);
+        $reach    = $bounce ? between([0.0, 0.3]) : between([0.2, 1.0]) * (1.0 - 0.35 * $slowness);
+        $maxScroll = (int) max(0, $reach * $height - $dev['wh']);
+
         $act('pageenter', ['at' => 0], ['title' => 'Wrecked Tech', 'visibility' => 'visible']);
-        for ($k = 0; $k < mt_rand(2, 9); $k++) {
-            $act('scroll', ['at' => (int) ($dwell * ($k + 1) / 12),
-                            'sx' => 0, 'sy' => mt_rand(0, 3200)]);
+        $scrolls = $bounce ? mt_rand(0, 2) : mt_rand(3, 10);
+        for ($k = 0; $k < $scrolls; $k++) {
+            $sy = (int) ($maxScroll * ($k + 1) / max(1, $scrolls));
+            $act('scroll', ['at' => (int) ($dwell * ($k + 1) / ($scrolls + 2)), 'sx' => 0, 'sy' => $sy],
+                 ['scrollX' => 0, 'scrollY' => $sy, 'maxY' => $height]);
         }
-        for ($k = 0; $k < mt_rand(0, 4); $k++) {
+        if ($scrolls === 0) {
+            // A bounce with no scroll still tells the depth metric how tall the page was.
+            $act('scroll', ['at' => 300, 'sx' => 0, 'sy' => 0], ['scrollX' => 0, 'scrollY' => 0, 'maxY' => $height]);
+        }
+        for ($k = 0; $k < ($bounce ? mt_rand(0, 1) : mt_rand(0, 5)); $k++) {
             $act('click', ['at' => (int) ($dwell * mt_rand(1, 9) / 10),
                            'x' => mt_rand(0, 1400), 'y' => mt_rand(0, 900), 'button' => 0],
                  ['buttonName' => 'left', 'target' => 'a.product-card']);
@@ -298,11 +326,25 @@ for ($s = 0; $s < $sessionCount; $s++) {
             $gap = mt_rand(2000, 12000);
             $act('idle', ['at' => (int) ($dwell * 0.6), 'idle' => $gap], ['durationMs' => $gap]);
         }
-        // Errors are a property of the page, not of the profile being tested.
-        if (mt_rand(1, 6) === 1) {
+        // Errors are a property of the page, not of the profile being tested. The
+        // checkout page is made noticeably worse, so "where does it break" has a
+        // real answer to find.
+        $errChance = $page === '/checkout.html' ? 2 : 7;
+        if (mt_rand(1, $errChance) === 1) {
             $act('error', ['at' => mt_rand(50, 900),
                            'error' => 'Uncaught ReferenceError: undefinedVariable is not defined'],
-                 ['source' => "https://$HOST/js/chaos.js", 'line' => 42]);
+                 ['message' => 'Uncaught ReferenceError: undefinedVariable is not defined',
+                  'source' => "https://$HOST/js/chaos.js", 'line' => 42]);
+        }
+        if ($page === '/checkout.html' && mt_rand(1, 3) === 1) {
+            $act('error', ['at' => mt_rand(900, 4000),
+                           'error' => 'Uncaught TypeError: Cannot read properties of null (reading \'value\')'],
+                 ['message' => 'Uncaught TypeError: Cannot read properties of null (reading \'value\')',
+                  'source' => "https://$HOST/js/main.js", 'line' => 118]);
+        }
+        if (mt_rand(1, 9) === 1) {
+            $act('resource-error', ['at' => mt_rand(200, 1500)],
+                 ['tag' => 'img', 'url' => "https://$HOST/assets/missing-product.png"]);
         }
         $act('pageleave', ['at' => $dwell], ['timeOnPageMs' => $dwell, 'reason' => 'pagehide']);
 
