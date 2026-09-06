@@ -52,7 +52,7 @@ body {
 .topbar nav a { color: var(--ink-soft); text-decoration: none; }
 .topbar nav a:hover { color: var(--ink); }
 .topbar nav a[aria-current="page"] { color: var(--accent); font-weight: 600; }
-.whoami { margin-left: auto; display: flex; align-items: center; gap: 12px;
+.whoami { margin: 0 0 0 auto; display: flex; align-items: center; gap: 12px;
           color: var(--ink-soft); font-size: 14px; }
 
 .role {
@@ -66,6 +66,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 28px 20px 60px; }
 main.wide { max-width: 1400px; }
 h1 { font-size: 26px; margin: 0 0 4px; letter-spacing: -.01em; }
 h2 { font-size: 18px; margin: 0 0 4px; }
+.h2-sub { font-size: 15px; }
 .subtitle { color: var(--ink-soft); margin: 0 0 24px; }
 
 .pagefoot {
@@ -82,7 +83,10 @@ h2 { font-size: 18px; margin: 0 0 4px; }
 .card > h2 + .card-question { margin-top: 2px; }
 .card-question { color: var(--ink-soft); font-size: 14px; margin: 0 0 16px; }
 
-.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 22px; }
+/* min() so the track can go below 420px on a narrower viewport. A bare
+   minmax(420px, 1fr) forces a 420px column and scrolls the whole page sideways
+   on a phone. */
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 22px; }
 .grid-2 .card { margin-bottom: 0; }
 
 /* ------------------------------------------------------------------ tables */
@@ -101,9 +105,17 @@ table.data td.wrap { white-space: normal; word-break: break-all; max-width: 460p
 
 /* ------------------------------------------------------------------ charts */
 
-.chart-wrap { margin: 8px 0 4px; }
+.chart-wrap { margin: 8px 0 4px; padding: 0; }
 .charts-css { font-size: 13px; }
+
+/* Bar charts encode their value as WIDTH, so height is free to follow content.
+   Previously charts.php set an inline height, which made this rule lose and caused
+   the bug this file exists to fix: Charts.css puts `display:block` on the table, so
+   its <tbody>/<tr> form an anonymous table box that sizes to content and happily
+   exceeds a fixed height — and with overflow visible it painted over the legend and
+   the coverage badge below instead of pushing them down. */
 .charts-css.bar { height: auto; }
+.charts-css.bar tbody tr td { min-height: 34px; }
 
 /* Charts.css hides the legend's own colour swatches unless we supply them. */
 ul.legend { list-style: none; display: flex; flex-wrap: wrap; gap: 6px 18px;
@@ -141,7 +153,13 @@ ul.legend span.swatch { width: 11px; height: 11px; border-radius: 2px; flex: non
 /* ------------------------------------------------------------------- forms */
 
 form.stack { display: grid; gap: 14px; }
-label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 5px; }
+label { font-weight: 600; font-size: 13px; }
+
+/* A field label now WRAPS its own control, so it is the group container rather
+   than a caption sitting above one. Column flex puts the text back on top; the
+   bare text node becomes an anonymous flex item, which is exactly what we want. */
+label.field { display: flex; flex-direction: column; gap: 5px; margin: 0; }
+p.field { margin: 0; display: flex; align-items: flex-end; }
 input[type=text], input[type=email], input[type=password], select {
   width: 100%; padding: 9px 11px; border: 1px solid var(--line);
   border-radius: 6px; font: inherit; background: #fff;
@@ -163,7 +181,6 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: -1
            background: var(--surface); border: 1px solid var(--line);
            border-radius: var(--radius); padding: 14px 16px; margin-bottom: 22px; }
 .filters .field { min-width: 150px; }
-.filters label { margin-bottom: 3px; }
 
 .notice { border-radius: 6px; padding: 10px 14px; margin-bottom: 18px; font-size: 14px; }
 .notice-error { background: #fdecea; border: 1px solid #f5b7b1; color: #922b21; }
@@ -198,8 +215,31 @@ body.error-page { display: flex; align-items: center; justify-content: center; m
 .charts-css td:focus-within .tooltip { opacity: 1; visibility: visible; }
 
 /* Segment labels: legible against the darker end of the palette. */
-.charts-css .data { color: #fff; font-size: 11.5px; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
+/* The trigger for the overflow: without nowrap, "78.0 ms" wraps to three lines
+   inside a narrow segment and inflates the whole row. Clipping keeps a label that
+   cannot fit from changing the layout — the exact value is still available in the
+   tooltip, which is a SIBLING of .data and so is never clipped by this. */
+.charts-css .data {
+  color: #fff; font-size: 11.5px; text-shadow: 0 1px 2px rgba(0,0,0,.35);
+  white-space: nowrap;
+}
+.charts-css.bar tbody tr td .data { max-width: 100%; overflow: hidden; }
 .charts-css.column .data { color: var(--ink); text-shadow: none; }
+
+/* Column charts label the x-axis, so those headers are horizontal and compete for
+   width with each other. Keep them on one line and let them shrink. */
+.charts-css.column tbody tr th {
+  font-size: 11px; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; text-align: center;
+}
+
+/* Those axis labels are position:absolute with a negative block-end margin, so
+   they render OUTSIDE the table's own box. Without this the legend in the
+   figcaption below starts immediately after the box and lands on top of them. */
+.charts-css.column { margin-bottom: 2.25rem; }
+
+/* figcaption holds the colour key; it needs no default indent or italics. */
+.chart-wrap figcaption { margin: 0; }
 
 /* Row headers should read as labels, not as table headings. */
 .charts-css th[scope="row"] {

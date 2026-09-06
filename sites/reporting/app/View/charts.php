@@ -40,18 +40,15 @@ function chart_stacked_bar(array $rows, array $series, array $opts = []): void
     $max = max(array_map(static fn($r) => (float) $r['total'], $rows)) ?: 1.0;
     $unit = $opts['unit'] ?? 'ms';
     ?>
-<div class="chart-wrap">
-  <table class="charts-css bar multiple stacked show-labels" style="--labels-size:<?= e($opts['labelWidth'] ?? '190px') ?>;height:<?= count($rows) * 42 + 20 ?>px">
-<?php if (!empty($opts['caption'])): ?>
-    <caption class="sr-only"><?= e($opts['caption']) ?></caption>
-<?php endif; ?>
+<figure class="chart-wrap">
+  <table class="charts-css bar multiple stacked show-labels" style="--labels-size:<?= e($opts['labelWidth'] ?? 'clamp(88px, 22vw, 190px)') ?>">
     <tbody>
 <?php foreach ($rows as $r): ?>
       <tr>
         <th scope="row"><?= e($r['label']) ?></th>
 <?php $i = 0; foreach ($series as $key => $label): $v = (float) ($r['parts'][$key] ?? 0); ?>
         <td style="--size:calc(<?= round($v, 3) ?>/<?= round($max, 3) ?>);--color:<?= chart_color($i) ?>">
-          <span class="data"><?= $v > $max * 0.06 ? e(fmt_ms($v)) : '' ?></span>
+          <span class="data"><?= $v > $max * 0.12 ? e(fmt_ms($v)) : '' ?></span>
           <span class="tooltip"><?= e($label . ': ' . fmt_ms($v)) ?></span>
         </td>
 <?php $i++; endforeach; ?>
@@ -59,9 +56,12 @@ function chart_stacked_bar(array $rows, array $series, array $opts = []): void
 <?php endforeach; ?>
     </tbody>
   </table>
-</div>
+  <figcaption>
+<?php if (!empty($opts['caption'])): ?><span class="sr-only"><?= e($opts['caption']) ?></span><?php endif; ?>
+    <?php chart_legend($series); ?>
+  </figcaption>
+</figure>
 <?php
-    chart_legend($series);
 }
 
 /**
@@ -82,28 +82,28 @@ function chart_column_multi(array $bins, array $series, array $opts = []): void
     }
     $max = $max ?: 1.0;
     ?>
-<div class="chart-wrap">
-  <table class="charts-css column multiple show-labels show-primary-axis" style="height:260px">
-<?php if (!empty($opts['caption'])): ?>
-    <caption class="sr-only"><?= e($opts['caption']) ?></caption>
-<?php endif; ?>
+<figure class="chart-wrap">
+  <table class="charts-css column multiple show-labels show-primary-axis" style="height:260px;--labels-size:2rem">
     <tbody>
 <?php foreach ($bins as $b): ?>
       <tr>
-        <th scope="row"><?= e($b['label']) ?></th>
+        <th scope="row"><?= e($b['axis'] ?? $b['label']) ?></th>
 <?php $i = 0; foreach ($series as $key => $label): $v = (float) ($b[$key] ?? 0); ?>
         <td style="--size:calc(<?= round($v, 3) ?>/<?= round($max, 3) ?>);--color:<?= chart_color($i + ($opts['colorOffset'] ?? 0)) ?>">
           <span class="data"><?= $v > 0 ? e((string) (int) $v) : '' ?></span>
-          <span class="tooltip"><?= e($label . ': ' . (int) $v . ' pageviews') ?></span>
+          <span class="tooltip"><?= e($b['label'] . ' — ' . $label . ': ' . (int) $v . ' pageviews') ?></span>
         </td>
 <?php $i++; endforeach; ?>
       </tr>
 <?php endforeach; ?>
     </tbody>
   </table>
-</div>
+  <figcaption>
+<?php if (!empty($opts['caption'])): ?><span class="sr-only"><?= e($opts['caption']) ?></span><?php endif; ?>
+    <?php chart_legend($series, $opts['colorOffset'] ?? 0); ?>
+  </figcaption>
+</figure>
 <?php
-    chart_legend($series, $opts['colorOffset'] ?? 0);
 }
 
 /**
@@ -120,11 +120,8 @@ function chart_ranked_bar(array $rows, array $opts = []): void
     $max = max(array_map(static fn($r) => (float) $r['value'], $rows)) ?: 1.0;
     $fmt = $opts['format'] ?? 'fmt_ms';
     ?>
-<div class="chart-wrap">
-  <table class="charts-css bar show-labels" style="--labels-size:<?= e($opts['labelWidth'] ?? '210px') ?>;height:<?= count($rows) * 34 + 16 ?>px">
-<?php if (!empty($opts['caption'])): ?>
-    <caption class="sr-only"><?= e($opts['caption']) ?></caption>
-<?php endif; ?>
+<figure class="chart-wrap">
+  <table class="charts-css bar show-labels" style="--labels-size:<?= e($opts['labelWidth'] ?? 'clamp(96px, 24vw, 210px)') ?>">
     <tbody>
 <?php foreach ($rows as $idx => $r): $v = (float) $r['value']; ?>
       <tr>
@@ -136,7 +133,10 @@ function chart_ranked_bar(array $rows, array $opts = []): void
 <?php endforeach; ?>
     </tbody>
   </table>
-</div>
+<?php if (!empty($opts['caption'])): ?>
+  <figcaption><span class="sr-only"><?= e($opts['caption']) ?></span></figcaption>
+<?php endif; ?>
+</figure>
 <?php
 }
 
@@ -161,7 +161,7 @@ function chart_legend(array $series, int $offset = 0): void
 function coverage_badge(array $cov): void
 {
     ?>
-<div class="coverage">
+<footer class="coverage">
   <span><b><?= e(fmt_int((float) ($cov['pageviews'] ?? 0))) ?></b> pageviews</span>
 <?php if (!empty($cov['sessions'])): ?>
   <span><b><?= e(fmt_int((float) $cov['sessions'])) ?></b> sessions</span>
@@ -175,7 +175,7 @@ function coverage_badge(array $cov): void
 <?php foreach ($cov['caveats'] ?? [] as $c): ?>
   <span class="caveat"><?= e($c) ?></span>
 <?php endforeach; ?>
-</div>
+</footer>
 <?php
 }
 

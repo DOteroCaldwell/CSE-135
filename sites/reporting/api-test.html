@@ -133,53 +133,132 @@
         });
       }
 
+      /* ------------------------------------------------------------------
+       * Write demos operate on a SANDBOX SESSION this page creates itself.
+       *
+       * They used to call withFirstId(), which fetches ?limit=1 against
+       * ORDER BY id DESC — the newest REAL row. So PUT rewrote live analytics and
+       * DELETE destroyed it; on /api/sessions that cascaded into the session's
+       * static, performance, activity and resources rows. Clicking through this
+       * console, exactly as the HW3 write-up instructs, quietly damaged the
+       * dataset it was meant to demonstrate.
+       *
+       * Now: POST creates rows, PUT and DELETE only touch what POST created, and
+       * the sandbox session is flagged is_synthetic so it never counts as a
+       * visitor. Reads still use real rows — they cannot hurt anything.
+       * ------------------------------------------------------------------ */
+      var sandbox = { session: null, rows: {} };
+
+      function jsonOf(res) { return res.json()['catch'](function () { return null; }); }
+
+      // Resolve (creating if needed) the sandbox session every child row hangs off.
+      function ensureSandboxSession() {
+        if (sandbox.session) { return Promise.resolve(sandbox.session); }
+        var id = 'apitest-' + Date.now();
+        return fetch('/api/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({
+            session_id: id, sid_source: 'client',
+            entry_page: '/api-test.html', is_synthetic: 1
+          })
+        }).then(function (res) {
+          if (!res.ok) { throw new Error('could not create sandbox session (' + res.status + ')'); }
+          sandbox.session = id;
+          return id;
+        });
+      }
+
+      // A POST body that satisfies each resource's required fields, always
+      // referencing the sandbox session rather than an unrelated real row.
+      function sample(sessionId) {
+        var r = resource();
+        if (r === 'sessions') {
+          return { session_id: 'apitest-' + Date.now(), sid_source: 'client',
+                   entry_page: '/api-test.html', is_synthetic: 1 };
+        }
+        if (r === 'static')      { return { session_id: sessionId, page: '/api-test.html', language: 'en-US' }; }
+        if (r === 'performance') { return { session_id: sessionId, page: '/api-test.html', total_load_ms: 123 }; }
+        if (r === 'resources')   { return { session_id: sessionId, page: '/api-test.html',
+                                            name: 'https://example.test/a.png', initiator_type: 'img',
+                                            transfer_size: 2048 }; }
+        return { session_id: sessionId, event_type: 'click', pos_x: 1, pos_y: 2 };
+      }
+
+      // Id of the sandbox row for the current resource, or null if none yet.
+      function sandboxId() {
+        return resource() === 'sessions' ? sandbox.session : (sandbox.rows[resource()] || null);
+      }
+
+      function needSandbox() {
+        line.textContent = 'Nothing to act on yet — press POST first. '
+          + 'PUT and DELETE only touch rows this page created.';
+      }
+
+      // Read-only helper: the first REAL row, for GET /{id}.
       function withFirstId(fn) {
         return fetch('/api/' + resource() + '?limit=1')
           .then(function (r) { return r.json(); })
           .then(function (j) {
             var row = j.data && j.data[0];
             if (!row) { line.textContent = 'No rows yet — POST one first.'; return; }
-            lastId = row.session_id !== undefined && resource() === 'sessions'
+            var id = (resource() === 'sessions' && row.session_id !== undefined)
               ? row.session_id : row.id;
-            return fn(lastId);
+            return fn(id);
           });
-      }
-
-      // A POST body that satisfies each resource's required fields.
-      function sample() {
-        var r = resource();
-        var sid = 'apitest-' + Date.now();
-        if (r === 'sessions')    { return { session_id: sid, sid_source: 'client', entry_page: '/api-test.html' }; }
-        if (r === 'static')      { return { session_id: lastId, page: '/api-test.html', language: 'en-US' }; }
-        if (r === 'performance') { return { session_id: lastId, page: '/api-test.html', total_load_ms: 123 }; }
-        if (r === 'resources')   { return { session_id: lastId, page: '/api-test.html',
-                                            name: 'https://example.test/a.png', initiator_type: 'img',
-                                            transfer_size: 2048 }; }
-        return { session_id: lastId, event_type: 'click', pos_x: 1, pos_y: 2 };
       }
 
       document.getElementById('getAll').onclick = function () { call('GET', resource()); };
       document.getElementById('getOne').onclick = function () {
         withFirstId(function (id) { return call('GET', resource() + '/' + id); });
       };
+
       document.getElementById('post').onclick = function () {
-        if (resource() === 'sessions') { return call('POST', 'sessions', sample()); }
-        // child rows need an existing session to reference
-        withFirstId(function () { return call('POST', resource(), sample()); });
+        var r = resource();
+        if (r === 'sessions') {
+          var body = sample(null);
+          return call('POST', 'sessions', body).then(function () {
+            sandbox.session = body.session_id;
+          });
+        }
+        return ensureSandboxSession().then(function (sid) {
+          var url = '/api/' + r;
+          line.textContent = 'POST ' + url + ' …';
+          return fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+            body: JSON.stringify(sample(sid))
+          }).then(function (res) {
+            return res.text().then(function (t) {
+              show('POST', url, res.status, t);
+              try { var j = JSON.parse(t); if (j.data && j.data.id) { sandbox.rows[r] = j.data.id; } }
+              catch (e) { /* body already displayed */ }
+            });
+          });
+        })['catch'](function (e) { line.textContent = e.message; });
       };
+
       document.getElementById('put').onclick = function () {
-        withFirstId(function (id) {
-          var r = resource();
-          var patch = r === 'sessions' ? { entry_page: '/updated-' + Date.now() }
-                    : r === 'activity' ? { event_type: 'updated' }
-                    : r === 'resources' ? { initiator_type: 'script' }
-                    : { page: '/updated-' + Date.now() };
-          return call('PUT', r + '/' + id, patch);
+        var id = sandboxId();
+        if (!id) { return needSandbox(); }
+        var r = resource();
+        var patch = r === 'sessions' ? { entry_page: '/updated-' + Date.now() }
+                  : r === 'activity' ? { event_type: 'updated' }
+                  : r === 'resources' ? { initiator_type: 'script' }
+                  : { page: '/api-test-updated' };
+        return call('PUT', r + '/' + id, patch);
+      };
+
+      document.getElementById('del').onclick = function () {
+        var id = sandboxId();
+        if (!id) { return needSandbox(); }
+        var r = resource();
+        return call('DELETE', r + '/' + id).then(function () {
+          if (r === 'sessions') { sandbox.session = null; sandbox.rows = {}; }
+          else { delete sandbox.rows[r]; }
         });
       };
-      document.getElementById('del').onclick = function () {
-        withFirstId(function (id) { return call('DELETE', resource() + '/' + id); });
-      };
+
       document.getElementById('badPost').onclick = function () {
         withFirstId(function (id) { return call('POST', resource() + '/' + id, {}); });
       };

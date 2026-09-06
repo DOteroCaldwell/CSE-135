@@ -99,17 +99,17 @@ layout_header('Page load cost', [
    &nbsp;·&nbsp; Scope: <?= e($f->describe()) ?></p>
 
 <?php if ($opp->isEmpty()): ?>
-  <div class="card">
+  <section class="card">
     <h2>No data in scope</h2>
     <p class="card-question">This report needs at least one pageview with navigation
        timing. Adjust the filters on the dashboard, or generate traffic against the
        instrumented site.</p>
-  </div>
+  </section>
   <?php layout_footer(); exit; ?>
 <?php endif; ?>
 
 <!-- ============================ THE ANSWER ============================== -->
-<div class="verdict">
+<section class="verdict">
   <h2>The answer, as the data currently stands</h2>
   <p class="headline"><?= e($winnerLabel) ?></p>
   <p>
@@ -134,10 +134,10 @@ layout_header('Page load cost', [
     about the site.
   </p>
 <?php endif; ?>
-</div>
+</section>
 
 <!-- ================== 1. WHERE DOES THE TIME GO? ======================== -->
-<div class="card">
+<section class="card">
   <h2>1. Where does the time go?</h2>
   <p class="card-question">
     A page load is not one number. Splitting it at the boundaries the browser
@@ -161,10 +161,10 @@ chart_stacked_bar(array_map(static fn($r) => [
     pageview that never occurred.
   </p>
   <?php coverage_badge($breakdown->coverage); ?>
-</div>
+</section>
 
 <!-- =================== 2. WHAT IS THE ONE THING? ======================== -->
-<div class="card">
+<section class="card">
   <h2>2. What is the one thing?</h2>
   <p class="card-question">
     Each phase is scored on <strong>recoverable</strong> time, not raw size: how much
@@ -190,10 +190,10 @@ data_table([
 ], $opp->rows);
 ?>
   <?php coverage_badge($opp->coverage); ?>
-</div>
+</section>
 
 <!-- ===================== 3. WHAT IS IT WORTH? =========================== -->
-<div class="card">
+<section class="card">
   <h2>3. What is it worth?</h2>
   <p class="card-question">
     Recoverable time expressed three ways, because "<?= e(fmt_ms($opp->summary['winner_savings_per_view'])) ?>"
@@ -202,7 +202,6 @@ data_table([
   </p>
 
   <div class="grid-2">
-    <div>
       <table class="data">
         <tbody>
           <tr><th>Per pageview</th><td class="num"><?= e(fmt_ms($opp->summary['winner_savings_per_view'])) ?></td></tr>
@@ -215,9 +214,8 @@ data_table([
               <td class="num"><?= e(fmt_ms(max(0, $opp->summary['median_total'] - $opp->summary['winner_savings_per_view']))) ?></td></tr>
         </tbody>
       </table>
-    </div>
-    <div>
-      <h2 style="font-size:15px">What this phase responds to</h2>
+    <section>
+      <h2 class="h2-sub">What this phase responds to</h2>
       <ul>
 <?php foreach (REMEDIES[$winner] ?? [] as $r): ?>
         <li><?= e($r) ?></li>
@@ -227,16 +225,19 @@ data_table([
         These are written, not derived. The data chose the phase; this list says what
         that phase is known to respond to.
       </p>
-    </div>
+    </section>
   </div>
-</div>
+</section>
 
 <!-- ================== SUPPORTING: cache and resources =================== -->
 <div class="grid-2">
-  <div class="card">
+  <section class="card">
     <h2>First visit vs return visit</h2>
     <p class="card-question">The cost of arriving fresh, which is the only cost a new visitor ever sees.</p>
-<?php chart_column_multi($cohort->rows, ['cold' => 'First visit', 'warm' => 'Return visit'], ['colorOffset' => 2]); ?>
+<?php chart_column_multi($cohort->rows, ['cold' => 'First visit', 'warm' => 'Return visit'], [
+    'caption'     => 'Number of pageviews falling in each load-time band, split by cache state.',
+    'colorOffset' => 2,
+]); ?>
 <?php if (($cohort->summary['ratio'] ?? null) !== null): ?>
     <p class="card-question" style="margin-top:14px">
       Median first visit <?= e(fmt_ms($cohort->summary['cold_median'])) ?> against
@@ -247,9 +248,9 @@ data_table([
     </p>
 <?php endif; ?>
     <?php coverage_badge($cohort->coverage); ?>
-  </div>
+  </section>
 
-  <div class="card">
+  <section class="card">
     <h2>Heaviest resources</h2>
     <p class="card-question">
       Ranked by total bytes actually transferred, so a file requested on every page
@@ -267,11 +268,11 @@ data_table([
 ], array_slice($weight->rows, 0, 12));
 ?>
     <?php coverage_badge($weight->coverage); ?>
-  </div>
+  </section>
 </div>
 
 <!-- ======================= WRITTEN DISCUSSION =========================== -->
-<div class="card">
+<section class="card">
   <h2>Discussion</h2>
 
   <p>
@@ -322,7 +323,7 @@ data_table([
   </p>
 <?php endif; ?>
 
-  <h2 style="font-size:16px;margin-top:22px">Analyst comment</h2>
+  <h2 class="h2-sub" style="margin-top:22px">Analyst comment</h2>
   <p>
     The method here is deliberately conservative. Every target is a level this site
     has already reached on its own best loads, on its own hardware, so no estimate
@@ -340,6 +341,6 @@ data_table([
     any of this changes behaviour: the platform records what visitors do, so the next
     question worth building is whether slow loads actually cost engagement.
   </p>
-</div>
+</section>
 
 <?php layout_footer(); ?>

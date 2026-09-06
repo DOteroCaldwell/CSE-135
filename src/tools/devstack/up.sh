@@ -9,11 +9,14 @@
 #   ./up.sh          start, migrate, seed
 #   ./up.sh --down   tear everything down
 #
-# Then: http://localhost:8135  (grader-admin / Wrestl3-Admin-2026)
+# Then: http://localhost:8135  (grader-admin / $DEV_PASS)
 set -euo pipefail
 cd "$(dirname "$0")"
 ROOT="$(cd ../../.. && pwd)"
 CFG="$(pwd)/.dbini"
+# Local development only. Deliberately NOT any password used on the droplet:
+# a throwaway container should never hold a credential that works in production.
+DEV_PASS="localdev-135"
 
 if [ "${1:-}" = "--down" ]; then
   docker rm -f cse135-web cse135-mysql >/dev/null 2>&1 || true
@@ -44,10 +47,20 @@ for _ in $(seq 1 60); do
 done; echo
 [ "$ready" = 1 ] || { echo "mysql did not become ready" >&2; exit 1; }
 
-for f in schema.sql 002-host-and-resources.sql 003-users.sql 004-seed-users.sql 005-grader-compat.sql; do
-  docker exec -i cse135-mysql mysql -uroot -prootpw < "$ROOT/src/sql/$f"
+for f in schema.sql 002-host-and-resources.sql 003-users.sql 006-cleanup-test-rows.sql; do
+  docker exec -i cse135-mysql mysql -uroot -prootpw < "$ROOT/src/sql/$f" >/dev/null
   echo "  applied $f"
 done
+
+# Accounts are generated fresh with a LOCAL-ONLY password, never read from
+# src/sql/004-seed-users.sql. Those files are gitignored because they carry real
+# hashes, and a dev container has no business holding production credentials.
+# $CFG is gitignored, so this never lands in the repo either.
+docker run --rm -v "$ROOT":/app -w /app php:8.3-cli \
+  php src/tools/seed-users/make-users.php --admin="$DEV_PASS" --basic="$DEV_PASS" \
+  > "$CFG/local-users.sql" 2>/dev/null
+docker exec -i cse135-mysql mysql -uroot -prootpw < "$CFG/local-users.sql" >/dev/null
+echo "  seeded local accounts"
 
 PHP=(docker run --rm --network cse135net -v "$ROOT":/app -v "$CFG":/etc/cse135:ro -w /app cse135-php php)
 "${PHP[@]}" src/tools/seed-fixtures/seed.php --profile=balanced --sessions=20 --purge
@@ -62,5 +75,5 @@ docker run -d --name cse135-web --network cse135net -p 8135:8135 \
   cse135-php php -S 0.0.0.0:8135 -t /var/www/reporting /var/www/router.php >/dev/null
 
 echo
-echo "  http://localhost:8135   grader-admin / Wrestl3-Admin-2026"
+echo "  http://localhost:8135   grader-admin / $DEV_PASS"
 echo "  bias test:  ../verify/bias-test.sh ${PHP[*]}"

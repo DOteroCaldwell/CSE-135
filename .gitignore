@@ -9,6 +9,18 @@ deploy_key*
 # Private submission notes (grader credentials, write-ups)
 docs/writeups/
 
+# Deploy/setup guides. These quote grader logins, the droplet IP and shell
+# commands with passwords inline, so they are operator notes rather than source.
+# They were tracked by mistake through 2026-09-05; see the "Credential rotation"
+# section of docs/guides/hw4-deploy.md for what that cost and how it was fixed.
+docs/guides/
+
+# Seed migrations carry real password hashes (and, previously, the plaintext in
+# their comments). Generate them with src/tools/seed-users/make-users.php, which
+# is tracked and holds no secrets. Only the .example templates belong in git.
+src/sql/004-seed-users.sql
+src/sql/005-grader-compat.sql
+
 # Dependencies
 node_modules/
 vendor/

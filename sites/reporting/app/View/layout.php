@@ -49,10 +49,10 @@ function layout_header(string $title, array $opts = []): void
       </ul>
     </nav>
 <?php if ($user !== null): ?>
-    <div class="whoami">
+    <p class="whoami">
       <span><?= e($user['username']) ?> <span class="role role-<?= e($user['role']) ?>"><?= e(str_replace('_', ' ', $user['role'])) ?></span></span>
       <a class="btn btn-quiet" href="/logout.php">Log out</a>
-    </div>
+    </p>
 <?php endif; ?>
   </div>
 </header>

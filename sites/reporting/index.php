@@ -39,62 +39,56 @@ layout_header('Performance dashboard', [
 ?>
 
 <form class="filters" method="get" action="/">
-  <div class="field">
-    <label for="host">Site</label>
-    <select id="host" name="host">
+  <label class="field" for="host">
+    Site<select id="host" name="host">
       <option value="">All sites</option>
 <?php foreach ($hosts as $h): ?>
       <option value="<?= e($h) ?>"<?= $f->host === $h ? ' selected' : '' ?>><?= e($h) ?></option>
 <?php endforeach; ?>
     </select>
-  </div>
-  <div class="field">
-    <label for="page">Page</label>
-    <select id="page" name="page">
+ </label>
+  <label class="field" for="page">
+    Page<select id="page" name="page">
       <option value="">All pages</option>
 <?php foreach ($pageList as $p): ?>
       <option value="<?= e($p) ?>"<?= $f->page === $p ? ' selected' : '' ?>><?= e($p) ?></option>
 <?php endforeach; ?>
     </select>
-  </div>
-  <div class="field">
-    <label for="cache">Cache state</label>
-    <select id="cache" name="cache">
+ </label>
+  <label class="field" for="cache">
+    Cache state<select id="cache" name="cache">
 <?php foreach (['all' => 'First and return visits', 'cold' => 'First visits only', 'warm' => 'Return visits only'] as $k => $lbl): ?>
       <option value="<?= e($k) ?>"<?= $f->cache === $k ? ' selected' : '' ?>><?= e($lbl) ?></option>
 <?php endforeach; ?>
     </select>
-  </div>
-  <div class="field">
-    <label for="from">From</label>
-    <input type="text" id="from" name="from" placeholder="YYYY-MM-DD" value="<?= e($f->from ?? '') ?>">
-  </div>
-  <div class="field">
-    <label for="to">To</label>
-    <input type="text" id="to" name="to" placeholder="YYYY-MM-DD" value="<?= e($f->to ?? '') ?>">
-  </div>
-  <div class="field">
-    <label for="synthetic">Generated traffic</label>
-    <select id="synthetic" name="synthetic">
+ </label>
+  <label class="field" for="from">
+    From<input type="text" id="from" name="from" placeholder="YYYY-MM-DD" value="<?= e($f->from ?? '') ?>">
+ </label>
+  <label class="field" for="to">
+    To<input type="text" id="to" name="to" placeholder="YYYY-MM-DD" value="<?= e($f->to ?? '') ?>">
+ </label>
+  <label class="field" for="synthetic">
+    Generated traffic<select id="synthetic" name="synthetic">
       <option value="1"<?= $f->includeSynthetic ? ' selected' : '' ?>>Included</option>
       <option value="0"<?= $f->includeSynthetic ? '' : ' selected' ?>>Excluded</option>
     </select>
-  </div>
-  <div class="field" style="min-width:auto"><button class="btn" type="submit">Apply</button></div>
-  <div class="field" style="min-width:auto"><a class="btn btn-quiet" href="/">Reset</a></div>
+ </label>
+  <p class="field" style="min-width:auto"><button class="btn" type="submit">Apply</button></p>
+  <p class="field" style="min-width:auto"><a class="btn btn-quiet" href="/">Reset</a></p>
 </form>
 
 <?php if ($opp->isEmpty()): ?>
-  <div class="card">
+  <section class="card">
     <h2>No performance data yet</h2>
     <p class="card-question">
       Nothing matches these filters. Either the collector has not recorded a pageview
       for this selection, or the filters exclude everything — try Reset.
     </p>
-  </div>
+  </section>
 <?php else: ?>
 
-<div class="verdict">
+<section class="verdict">
   <h2>Current answer</h2>
   <p class="headline">
     <?= e($opp->summary['winner_label']) ?> —
@@ -106,11 +100,11 @@ layout_header('Performance dashboard', [
     for every 1,000 pageviews served.
   </p>
   <p><a href="/reports/page-load-cost.php<?= e($f->toQuery()) ?>">See the full reasoning in the load cost report →</a></p>
-</div>
+</section>
 
 <div class="grid-2">
 
-  <div class="card">
+  <section class="card">
     <h2>Where load time goes</h2>
     <p class="card-question"><?= e(MetricRegistry::get('load-phase-breakdown')->question()) ?></p>
 <?php
@@ -146,9 +140,9 @@ layout_header('Performance dashboard', [
       Averages, not medians — means add up, so the segments sum to the real total.
     </p>
     <?php coverage_badge($breakdown->coverage); ?>
-  </div>
+  </section>
 
-  <div class="card">
+  <section class="card">
     <h2>First visit vs return visit</h2>
     <p class="card-question"><?= e(MetricRegistry::get('cache-cohort-split')->question()) ?></p>
 <?php
@@ -165,11 +159,11 @@ layout_header('Performance dashboard', [
     </p>
 <?php endif; ?>
     <?php coverage_badge($cohort->coverage); ?>
-  </div>
+  </section>
 
 </div>
 
-<div class="card">
+<section class="card">
   <h2>Pages ranked by load cost</h2>
   <p class="card-question"><?= e(MetricRegistry::get('slowest-pages')->question()) ?></p>
 <?php
@@ -189,7 +183,7 @@ data_table([
     loads costs more than a slow page nobody does.
   </p>
   <?php coverage_badge($pages->coverage); ?>
-</div>
+</section>
 
 <?php endif; ?>
 <?php layout_footer(); ?>

@@ -79,7 +79,19 @@ $P = $PROFILES[$profileName];
 
 $cfg = @parse_ini_file($configPath);
 if (!is_array($cfg)) {
+    /*
+     * On the droplet this file is mode 640 root:www-data by design — Apache reads
+     * it, nobody else does. A login shell is neither, so the usual cause here is
+     * privilege rather than a wrong path. Say so, because "cannot read" on its own
+     * sends you looking for a typo.
+     */
     fwrite(STDERR, "cannot read $configPath\n");
+    if (file_exists($configPath)) {
+        fwrite(STDERR, "  the file exists but this user cannot read it (it is 640 root:www-data)\n");
+        fwrite(STDERR, "  try:  sudo php " . ($argv[0] ?? 'seed.php') . " " . implode(' ', array_slice($argv, 1)) . "\n");
+    } else {
+        fwrite(STDERR, "  no such file — pass --config=/path/to/db.ini if it lives elsewhere\n");
+    }
     exit(1);
 }
 $pdo = new PDO(

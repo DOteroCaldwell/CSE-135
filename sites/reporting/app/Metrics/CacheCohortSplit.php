@@ -16,7 +16,7 @@ defined('CSE135_APP') || exit;
  */
 final class CacheCohortSplit implements Metric
 {
-    private const BINS = 8;
+    private const BINS = 6;
 
     public function id(): string { return 'cache-cohort-split'; }
     public function title(): string { return 'First visit vs return visit'; }
@@ -57,7 +57,10 @@ final class CacheCohortSplit implements Metric
             $lo = $min + $i * $width;
             $bins[$i] = [
                 'lo' => $lo, 'hi' => $lo + $width,
+                // `label` is the full range, used in the tooltip and by any grid
+                // rendering of this metric. `axis` is what fits under a column.
                 'label' => fmt_ms($lo) . '–' . fmt_ms($lo + $width),
+                'axis'  => fmt_ms($lo),
                 'cold' => 0, 'warm' => 0,
             ];
         }

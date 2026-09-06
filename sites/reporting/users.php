@@ -165,7 +165,7 @@ if ($ok !== null) {
 /* ------------------------------------------------- delete confirmation step -- */
 if ($confirming !== null):
 ?>
-<div class="card">
+<section class="card">
   <h2>Delete this user?</h2>
   <p>You are about to permanently delete
      <strong><?= e($confirming['username']) ?></strong>
@@ -178,10 +178,10 @@ if ($confirming !== null):
     <button class="btn btn-danger" type="submit">Yes, delete</button>
     <a class="btn btn-quiet" href="/users.php">Cancel</a>
   </form>
-</div>
+</section>
 <?php endif; ?>
 
-<div class="card">
+<section class="card">
   <h2><?= $editing ? 'Edit user' : 'Add a user' ?></h2>
   <form class="stack" method="post" action="/users.php">
     <?= Csrf::field() ?>
@@ -190,44 +190,36 @@ if ($confirming !== null):
     <input type="hidden" name="id" value="<?= e((string) $editing['id']) ?>">
 <?php endif; ?>
     <div class="filters" style="margin:0">
-      <div class="field">
-        <label for="username">Username</label>
-        <input type="text" id="username" name="username" required
+      <label class="field" for="username">
+        Username<input type="text" id="username" name="username" required
                value="<?= e($editing['username'] ?? '') ?>">
-      </div>
-      <div class="field">
-        <label for="email">Email</label>
-        <input type="email" id="email" name="email" required
+     </label>
+      <label class="field" for="email">
+        Email<input type="email" id="email" name="email" required
                value="<?= e($editing['email'] ?? '') ?>">
-      </div>
-      <div class="field">
-        <label for="password">Password<?= $editing ? ' (blank = unchanged)' : '' ?></label>
-        <input type="password" id="password" name="password"
+     </label>
+      <label class="field" for="password">
+        Password<?= $editing ? ' (blank = unchanged)' : '' ?><input type="password" id="password" name="password"
                autocomplete="new-password" <?= $editing ? '' : 'required' ?>>
-      </div>
-      <div class="field">
-        <label for="role">Role</label>
-        <select id="role" name="role">
+     </label>
+      <label class="field" for="role">
+        Role<select id="role" name="role">
 <?php foreach (Auth::ROLES as $r): ?>
           <option value="<?= e($r) ?>"<?= ($editing['role'] ?? 'viewer') === $r ? ' selected' : '' ?>>
             <?= e(str_replace('_', ' ', $r)) ?>
           </option>
 <?php endforeach; ?>
         </select>
-      </div>
-      <div class="field" style="min-width:auto">
-        <button class="btn" type="submit"><?= $editing ? 'Save changes' : 'Create user' ?></button>
-      </div>
+     </label>
+      <p class="field" style="min-width:auto"><button class="btn" type="submit"><?= $editing ? 'Save changes' : 'Create user' ?></button></p>
 <?php if ($editing): ?>
-      <div class="field" style="min-width:auto">
-        <a class="btn btn-quiet" href="/users.php">Cancel</a>
-      </div>
+      <p class="field" style="min-width:auto"><a class="btn btn-quiet" href="/users.php">Cancel</a></p>
 <?php endif; ?>
     </div>
   </form>
-</div>
+</section>
 
-<div class="card">
+<section class="card">
   <h2>All users</h2>
   <p class="card-question"><?= count($users) ?> account<?= count($users) === 1 ? '' : 's' ?>.
      The stored password hash is shown because the assignment asks for it — it is a
@@ -260,6 +252,6 @@ if ($confirming !== null):
     </tbody>
   </table>
   </div>
-</div>
+</section>
 <?php
 layout_footer();

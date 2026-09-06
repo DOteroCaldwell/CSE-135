@@ -81,20 +81,18 @@ layout_bare_header('Sign in');
   <?= Csrf::field() ?>
   <input type="hidden" name="next" value="<?= e($next) ?>">
 
-  <div>
-    <label for="identifier">Username or email</label>
+  <label class="field" for="identifier">Username or email
     <input type="text" id="identifier" name="identifier" required
            autocomplete="username" autocapitalize="none" spellcheck="false"
            value="<?= e($identifier) ?>">
-  </div>
+  </label>
 
-  <div>
-    <label for="password">Password</label>
+  <label class="field" for="password">Password
     <input type="password" id="password" name="password" required
            autocomplete="current-password">
-  </div>
+  </label>
 
-  <div><button class="btn" type="submit">Sign in</button></div>
+  <p><button class="btn" type="submit">Sign in</button></p>
 </form>
 <?php
 layout_bare_footer();

@@ -8,7 +8,13 @@ without deploying to the droplet.
 ./up.sh --down     # tear down
 ```
 
-Then <http://localhost:8135>, sign in as `grader-admin` / `Wrestl3-Admin-2026`.
+Then <http://localhost:8135>, sign in as `grader-admin` / `localdev-135`.
+
+That password is **local-only** and is set by `DEV_PASS` in `up.sh`. The stack
+generates its own accounts via `src/tools/seed-users/make-users.php` rather than
+applying `src/sql/004-seed-users.sql`, which is gitignored and carries the real
+hashes — a throwaway container should never hold a credential that works in
+production.
 
 ## What it is not
 
