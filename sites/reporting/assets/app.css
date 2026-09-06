@@ -16,9 +16,29 @@
   --warn-bg: #fff6e5;
   --warn-line: #f0c675;
   --radius: 8px;
+}
 
-  /* Charts.css reads these. One hue family, ordered light-to-dark, so a stacked
-     bar reads as a sequence of phases rather than an unordered set of categories. */
+/* ---------------------------------------------------------------- palette --
+ *
+ * Declared on BOTH :root and .charts-css, and that duplication is load-bearing.
+ *
+ * Charts.css sets --color-1..10 on `.charts-css` itself — the <table>. Custom
+ * properties resolve by inheritance, and the nearest ancestor that declares one
+ * wins, so inside the table Charts.css's own red/orange/yellow palette beat a
+ * :root declaration no matter what the source order or specificity was. The bars
+ * came out in Charts.css's colours while the legend swatches — which live in the
+ * <figcaption>, OUTSIDE the table — inherited ours from :root. Same markup, same
+ * variable names, completely different colours.
+ *
+ * Re-declaring on `.charts-css` puts our values on the same element Charts.css
+ * targets; app.css loads second, so ours wins on source order at equal
+ * specificity. :root still covers the legend.
+ *
+ * One hue family, ordered light-to-dark, so a stacked bar reads as a sequence of
+ * phases rather than an unordered set of categories.
+ */
+:root,
+.charts-css {
   --color-1: #123a75;
   --color-2: #1d5aa8;
   --color-3: #2f6fed;
@@ -28,6 +48,18 @@
   --color-7: #8a94a6;
   --color-8: #c2c8d2;
   --color-9: #e2e6ec;
+  /* Charts.css defines a 10th; chart_color() wraps at 9, but a stray reference
+     should not fall through to its orange. */
+  --color-10: #f0f2f5;
+
+  /* Contrast partner for each palette entry, for a marker drawn ON TOP of that
+     colour. The winning phase can be any of the nine, so the marker cannot pick a
+     single colour and hope: white vanishes on --color-9, near-black vanishes on
+     --color-1. Pairing them here keeps the palette and its contrast in one place. */
+  --oc-1: #ffffff;  --oc-2: #ffffff;  --oc-3: #ffffff;
+  --oc-4: #ffffff;  --oc-5: #1b1f24;  --oc-6: #1b1f24;
+  --oc-7: #ffffff;  --oc-8: #1b1f24;  --oc-9: #1b1f24;
+  --oc-10: #1b1f24;
 }
 
 * { box-sizing: border-box; }
@@ -213,6 +245,31 @@ body.error-page { display: flex; align-items: center; justify-content: center; m
    chart can opt out. Ours reveal on hover and on keyboard focus. */
 .charts-css td:hover .tooltip,
 .charts-css td:focus-within .tooltip { opacity: 1; visibility: visible; }
+
+/* The phase the report names as the answer.
+ *
+ * outline rather than border: a border participates in layout, and these cells are
+ * flex items whose width is calc(100% * var(--size)) — adding one risks nudging the
+ * segment. An outline never affects layout.
+ *
+ * outline-offset: -2px pulls the 2px band to sit entirely INSIDE the segment's
+ * edge. At offset 0 the outline paints outward from the border edge and would
+ * overlap the neighbouring phase; negative offset keeps it flush against the edge
+ * with no spill in either direction.
+ *
+ * Marked rather than recoloured, because position in the stack encodes the load
+ * timeline and the colour encodes which phase it is. Neither can be spent on
+ * emphasis without breaking the thing the chart is for.
+ */
+.charts-css.bar tbody tr td.is-winner {
+  outline: 2px dotted var(--outline-color, #fff);
+  outline-offset: -2px;
+}
+ul.legend li.is-winner span.swatch {
+  outline: 2px dotted var(--outline-color, #fff);
+  outline-offset: -2px;
+}
+ul.legend li.is-winner { color: var(--ink); font-weight: 600; }
 
 /* Segment labels: legible against the darker end of the palette. */
 /* The trigger for the overflow: without nowrap, "78.0 ms" wraps to three lines

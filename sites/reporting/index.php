@@ -133,7 +133,10 @@ layout_header('Performance dashboard', [
         'total' => $r['total'],
     ], array_slice($breakdown->rows, 0, 8));
     chart_stacked_bar($rows, $series, [
-        'caption' => 'Average milliseconds per pageview by load phase, for each page.',
+        'caption'   => 'Average milliseconds per pageview by load phase, for each page.',
+        // Marks whichever phase the opportunity ranking put first. Computed, not
+        // chosen: point this at another site and a different segment gets the ring.
+        'highlight' => $opp->summary['winner'] ?? null,
     ]);
 ?>
     <p class="card-question" style="margin-top:14px">

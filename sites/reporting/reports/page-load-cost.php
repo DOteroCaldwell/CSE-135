@@ -152,7 +152,10 @@ foreach (Phases::labels() as $k => $label) {
 chart_stacked_bar(array_map(static fn($r) => [
     'label' => $r['page'], 'parts' => $r['phases'], 'total' => $r['total'],
 ], array_slice($breakdown->rows, 0, 10)), $series, [
-    'caption' => 'Average milliseconds per pageview by load phase, for each page.',
+    'caption'   => 'Average milliseconds per pageview by load phase, for each page.',
+    // Marks whichever phase the ranking in section 2 put first, so movement 1 and
+    // movement 2 point at the same thing without the reader having to match colours.
+    'highlight' => $winner,
 ]);
 ?>
   <p class="card-question" style="margin-top:14px">
@@ -209,9 +212,21 @@ data_table([
           <tr><th>Per 1,000 pageviews</th><td class="num"><?= e(fmt_ms($opp->summary['winner_savings_per_1k'])) ?></td></tr>
           <tr><th>Across the <?= e(fmt_int((float) $n)) ?> pageviews measured</th>
               <td class="num"><?= e(fmt_ms($opp->summary['winner_savings_per_view'] * $n)) ?></td></tr>
+<?php
+/*
+ * Both rows use the MEAN, not the median.
+ *
+ * winner_savings_per_view is itself a mean (total recoverable time / pageviews).
+ * Subtracting it from the median mixes two statistics, and on this bimodal
+ * cold/warm data the median sits down among the warm loads while the savings come
+ * almost entirely from the cold ones — so the subtraction went negative and the
+ * report claimed the page would load in 0.0 ms. Mean minus mean is coherent.
+ */
+?>
+          <tr><th>Average load today</th><td class="num"><?= e(fmt_ms($opp->summary['mean_total'])) ?></td></tr>
+          <tr><th>Average load if fixed</th>
+              <td class="num"><?= e(fmt_ms(max(0, $opp->summary['mean_total'] - $opp->summary['winner_savings_per_view']))) ?></td></tr>
           <tr><th>Median load today</th><td class="num"><?= e(fmt_ms($opp->summary['median_total'])) ?></td></tr>
-          <tr><th>Median load if fixed</th>
-              <td class="num"><?= e(fmt_ms(max(0, $opp->summary['median_total'] - $opp->summary['winner_savings_per_view']))) ?></td></tr>
         </tbody>
       </table>
     <section>

@@ -25,6 +25,15 @@ function chart_color(int $i): string
 }
 
 /**
+ * Contrast partner for the same index — the colour a marker drawn ON TOP of that
+ * segment has to be to stay visible. See --oc-N in app.css.
+ */
+function chart_outline_color(int $i): string
+{
+    return 'var(--oc-' . (($i % 9) + 1) . ')';
+}
+
+/**
  * Horizontal stacked bar: one row per category, one segment per series.
  *
  * @param array $rows    [['label'=>string, 'parts'=>[key=>float], 'total'=>float], ...]
@@ -46,8 +55,9 @@ function chart_stacked_bar(array $rows, array $series, array $opts = []): void
 <?php foreach ($rows as $r): ?>
       <tr>
         <th scope="row"><?= e($r['label']) ?></th>
-<?php $i = 0; foreach ($series as $key => $label): $v = (float) ($r['parts'][$key] ?? 0); ?>
-        <td style="--size:calc(<?= round($v, 3) ?>/<?= round($max, 3) ?>);--color:<?= chart_color($i) ?>">
+<?php $i = 0; foreach ($series as $key => $label): $v = (float) ($r['parts'][$key] ?? 0);
+      $win = isset($opts['highlight']) && $key === $opts['highlight']; ?>
+        <td<?= $win ? ' class="is-winner"' : '' ?> style="--size:calc(<?= round($v, 3) ?>/<?= round($max, 3) ?>);--color:<?= chart_color($i) ?><?= $win ? ';--outline-color:' . chart_outline_color($i) : '' ?>">
           <span class="data"><?= $v > $max * 0.12 ? e(fmt_ms($v)) : '' ?></span>
           <span class="tooltip"><?= e($label . ': ' . fmt_ms($v)) ?></span>
         </td>
@@ -58,7 +68,7 @@ function chart_stacked_bar(array $rows, array $series, array $opts = []): void
   </table>
   <figcaption>
 <?php if (!empty($opts['caption'])): ?><span class="sr-only"><?= e($opts['caption']) ?></span><?php endif; ?>
-    <?php chart_legend($series); ?>
+    <?php chart_legend($series, 0, $opts['highlight'] ?? null); ?>
   </figcaption>
 </figure>
 <?php
@@ -140,13 +150,17 @@ function chart_ranked_bar(array $rows, array $opts = []): void
 <?php
 }
 
-function chart_legend(array $series, int $offset = 0): void
+function chart_legend(array $series, int $offset = 0, ?string $highlight = null): void
 {
     echo '<ul class="legend">';
     $i = 0;
-    foreach ($series as $label) {
-        echo '<li><span class="swatch" style="background:' . chart_color($i + $offset) . '"></span>'
-           . e($label) . '</li>';
+    foreach ($series as $key => $label) {
+        $win = $highlight !== null && $key === $highlight;
+        echo '<li' . ($win ? ' class="is-winner"' : '') . '>'
+           . '<span class="swatch" style="background:' . chart_color($i + $offset)
+           . ($win ? ';--outline-color:' . chart_outline_color($i + $offset) : '') . '"></span>'
+           . e($label) . ($win ? ' <span class="sr-only">(the phase this report names)</span>' : '')
+           . '</li>';
         $i++;
     }
     echo '</ul>';
