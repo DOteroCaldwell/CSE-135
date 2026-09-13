@@ -4,117 +4,93 @@
 **Course:** CSE 135 — Server-Side Web Applications, Fall 2026
 **Repository:** <https://github.com/DOteroCaldwell/CSE-135>
 
-A web analytics platform built across HW1–HW5 and deployed to one DigitalOcean
-droplet behind four Apache virtual hosts. Grader credentials are **not** in this
-file; they are in the `GRADER.md` submitted with the assignment.
+A web analytics platform built across HW1–HW5, deployed to one DigitalOcean droplet
+behind four Apache virtual hosts. Grader credentials are in the submitted
+`GRADER.md`, not here.
 
 ## Live sites
 
 | Host | Role |
 | --- | --- |
-| <https://ucsdwrestlingclub.com> | Team site. Every deliverable from every assignment is linked from this page. |
-| <https://test.ucsdwrestlingclub.com> | The instrumented target site ("Wrecked Tech"); `collector.js` runs here. |
-| <https://collector.ucsdwrestlingclub.com/collector.js> | The collector and its `/log` ingestion endpoint. |
-| <https://reporting.ucsdwrestlingclub.com> | The REST API and the authenticated reporting application. |
+| <https://ucsdwrestlingclub.com> | Team site; links every deliverable |
+| <https://test.ucsdwrestlingclub.com> | Instrumented target site; `collector.js` runs here |
+| <https://collector.ucsdwrestlingclub.com/collector.js> | Collector and `/log` ingestion endpoint |
+| <https://reporting.ucsdwrestlingclub.com> | REST API and the authenticated reporting application |
 
 HW5 deliverables on the reporting host:
 
 - [Sign in](https://reporting.ucsdwrestlingclub.com/login.php) · [Dashboard](https://reporting.ucsdwrestlingclub.com/)
-- Reports, one per category: [Page load cost](https://reporting.ucsdwrestlingclub.com/reports/page-load-cost.php) (performance) · [Engagement](https://reporting.ucsdwrestlingclub.com/reports/engagement.php) (behaviour) · [Audience](https://reporting.ucsdwrestlingclub.com/reports/audience.php) (audience)
-- [Saved reports](https://reporting.ucsdwrestlingclub.com/saved/) — fixed views published by analysts, each exportable to PDF; the only thing a viewer sees
-- [User management](https://reporting.ucsdwrestlingclub.com/users.php) — roles and analyst section assignments (super admin only)
-- REST API: `/api/{sessions,static,performance,activity,resources}`, strict REST verbs, session or HTTP Basic auth
+- Reports: [Page load cost](https://reporting.ucsdwrestlingclub.com/reports/page-load-cost.php) (performance) · [Engagement](https://reporting.ucsdwrestlingclub.com/reports/engagement.php) (behaviour) · [Audience](https://reporting.ucsdwrestlingclub.com/reports/audience.php) (audience)
+- [Saved reports](https://reporting.ucsdwrestlingclub.com/saved/) — fixed views published by analysts, exportable to PDF; all a viewer sees
+- [User management](https://reporting.ucsdwrestlingclub.com/users.php) — roles and analyst section assignments; super admin only
+- REST API: `/api/{sessions,static,performance,activity,resources}`, session or HTTP Basic auth
 
 ## What it does
 
 ```
 test site (browser)
   → collector.js  static / performance / activity / resources, via sendBeacon
-  → POST /log     PHP, one transaction per payload, session row upserted
+  → POST /log     PHP; one transaction per payload; session row upserted
   → MySQL         sessions · static · performance · activity · resources · users · user_sections · saved_reports
   → /api/…        REST, authenticated, section-authorised
   → reporting app dashboard → three reports → saved reports → PDF
 ```
 
-The platform is built around questions rather than metrics. Each report opens with
-a question, computes its answer from whatever data is in scope, ranks the
-candidates, and says how much data the answer rests on. Nothing on any page
-hardcodes which page is slow, which page is abandoned, or which device dominates.
+Each report opens with a question, computes the answer from the data in scope, and
+states how much data it rests on. No page hardcodes which page is slow, which is
+abandoned, or which device dominates.
 
 | Section | Report | Guiding question |
 | --- | --- | --- |
 | Performance | Page load cost | If we could fix one thing about this site's performance, what should it be, and what is it worth? |
-| Behaviour | Engagement | Do visitors engage with a page once it has loaded, and where do they give up? Does a slow load actually cost attention? |
-| Audience | Audience | Who is visiting, and what can their devices and browsers actually handle? |
+| Behaviour | Engagement | Do visitors engage with a page once it has loaded, and where do they give up? Does a slow load cost attention? |
+| Audience | Audience | Who is visiting, and what can their devices and browsers handle? |
 
-Every report has charts, data tables, a computed verdict, a written discussion
-interpolated from the data, and an authored analyst comment that says what the
-analysis cannot see. A coverage badge on every figure states the sample size and
-any caveats, derived from the data rather than written for it.
+Every report has charts, data tables, a computed verdict, a discussion interpolated
+from the data, and an authored analyst comment on what the analysis cannot see.
+Every figure carries a coverage badge with its sample size and data-derived caveats.
 
 ## Technical particulars
 
-**Stack.** Ubuntu 24.04, Apache 2.4 with php-fpm 8.3, MySQL 8. PHP throughout the
-reporting application; no framework, no build step, no Composer. Vanilla JavaScript
-in the collector, and **no JavaScript at all** in the reporting application.
-
-**Authentication.** Server-side PHP sessions; bcrypt via `password_hash()`; one
-identifier field that accepts a username or an email; failed logins take the same
-time whether or not the account exists (a dummy hash is verified on a miss);
-throttling keyed on the identifier as typed and on the client IP; session id
-regenerated on login; host-only `Secure`/`HttpOnly`/`SameSite=Lax` cookie;
-synchroniser-token CSRF on every state-changing form; open-redirect guard on
-`?next=`. The REST API accepts the same session cookie or HTTP Basic checked against
-the same `users` table, so `curl -u` works and the browser test console works.
-
-**Authorisation.** Three roles. A **super admin** can do anything, including user
-management. An **analyst** is assigned a set of sections (`user_sections` table);
-they see the dashboard cards, live reports and API resources for those sections and
-get an explanatory 403 elsewhere. A **viewer** never reaches a live report or the
-API; their whole application is the saved-reports list. The nav is built from what
-the account may open, so it never offers a link that leads to a 403.
-
-**Saved reports and export.** An analyst can save any filtered view of a report. The
-rendered HTML is captured at save time, so the saved copy is a fixed view that
-survives data changes; the live version stays one click away. The PDF export prints
-that snapshot with **headless Chrome** into a file outside every web root, streamed
-through an auth-gated URL. Chrome rather than dompdf or wkhtmltopdf because the
-charts are Charts.css (CSS custom properties, grid, flexbox), which those renderers
-do not support; Chrome prints the page the reader already saw, with no second
-stylesheet to maintain.
-
-**Charts.** [Charts.css](https://chartscss.org/): each chart is an HTML `<table>`
-drawn by CSS. It renders with scripting disabled, a screen reader gets a real data
-table, and the numbers are in the markup. The whole reporting application ships
-about **12 KB of gzipped CSS and zero bytes of JavaScript**; the dashboard page is
-under 5 KB gzipped.
-
-**Statistics.** Percentiles are linear-interpolated in PHP (MySQL 8 has no
-percentile aggregate). Stacked bars use means because means are additive; grids use
-medians and p90 so an outlier cannot describe a page. The performance verdict scores
-each load phase on *recoverable* time above its own 10th percentile, so it needs no
-borrowed benchmark and self-calibrates when the site changes. The behaviour report
-splits the same pageviews into four load-time cohorts and compares their engagement,
-the question the performance report could not answer on its own.
-
-**Honesty checks that run as scripts.** `src/tools/verify/bias-test.sh` seeds
-datasets whose bottleneck is chosen in advance and asserts the platform finds each
-one (a report that always says "images" is not measuring anything).
-`src/tools/verify/auth-matrix.sh` signs in as every role and asserts the status of
-every gated URL and API resource. Both run against the local devstack before every
-deploy and the auth matrix runs against production after.
-
-**Contingencies.** Styled 404 and 403 pages on the reporting host; the
-application's own 403s say *why* (viewer on a live report, analyst outside their
-section) rather than redirecting to a login the visitor has already passed. Export
-degrades to "renderer unavailable" with the saved page still readable. Every form
-works with JavaScript disabled because there is none to disable.
-
-**Deployment.** GitHub Actions rsyncs each `sites/<vhost>/` to its web root and
-`src/sql/` to a non-web directory on push to `main`; migrations are applied by hand
-on purpose. The droplet has no checkout of this repository. Layout and deploy
-details: [`deploy/README.md`](deploy/README.md). A Docker devstack
-(`src/tools/devstack/`) rehearses everything locally, including the PDF export.
+1. **Stack.** Ubuntu 24.04, Apache 2.4 with php-fpm 8.3, MySQL 8. Plain PHP with no
+   framework, build step, or Composer; vanilla JavaScript in the collector and none
+   in the reporting application.
+2. **Authentication.** Server-side PHP sessions with bcrypt passwords, a single
+   username-or-email field, constant-time failure (a dummy hash is verified on a
+   miss), and throttling by identifier and client IP. Session id regenerates on
+   login; the cookie is host-only, `Secure`, `HttpOnly`, `SameSite=Lax`; every
+   state-changing form carries a CSRF token; `?next=` rejects off-site targets.
+3. **Authorisation.** Super admin sees everything including user management. An
+   analyst is assigned sections (`user_sections`) and gets an explanatory 403
+   outside them, on pages and on `/api/*` alike; a viewer reaches only saved
+   reports. The nav lists only what the account may open.
+4. **REST API.** Strict verb semantics over five resources, column whitelists, and
+   the same `users` table behind either a session cookie or HTTP Basic, so `curl -u`
+   and the browser test console both work.
+5. **Saved reports.** An analyst saves any filtered view; the rendered HTML is
+   stored at save time, so the saved copy is fixed while the live report moves on.
+6. **PDF export.** Headless Chrome prints the saved snapshot, with CSS inlined, to a
+   file outside every web root, streamed through an auth-gated URL. Chrome rather
+   than dompdf or wkhtmltopdf because the charts need a current CSS engine.
+7. **Charts.** [Charts.css](https://chartscss.org/): each chart is an HTML table
+   drawn by CSS, so it renders without scripting and reads as a table to assistive
+   tech. The reporting application ships about 12 KB of gzipped CSS and zero bytes
+   of JavaScript.
+8. **Statistics.** Percentiles are interpolated in PHP; stacked bars use means
+   (additive), grids use medians and p90. The performance verdict ranks phases by
+   recoverable time above each phase's own 10th percentile; the behaviour report
+   compares engagement across four load-time cohorts of the same pageviews.
+9. **Verification scripts.** `src/tools/verify/bias-test.sh` seeds datasets with a
+   known bottleneck and asserts the platform finds it; `auth-matrix.sh` signs in as
+   every role and asserts every gated URL and API resource. Both run before each
+   deploy; the auth matrix also runs against production.
+10. **Contingencies.** Styled 404 and 403 pages; application 403s state the reason
+    instead of redirecting to login. Export degrades to a readable saved page when
+    the renderer is unavailable. Everything works with JavaScript disabled.
+11. **Deployment.** GitHub Actions rsyncs each `sites/<vhost>/` to its web root and
+    `src/sql/` to a non-web directory on push to `main`; migrations are applied by
+    hand. A Docker devstack in `src/tools/devstack/` rehearses everything locally,
+    including export. Details in [`deploy/README.md`](deploy/README.md).
 
 ## Use of AI
 
@@ -153,9 +129,9 @@ every number in this README and in the reports was checked by running the thing.
 
 ## Repository layout
 
-- `sites/<vhost>/` — one directory per Apache vhost; its contents deploy to that vhost's web root
-- `sites/reporting/app/` — the application: `Auth`, `Sections`, `Reports`, the metric layer (`Metrics/`, `PageviewSet`, `ActivitySet`, `AudienceSet`), views
-- `src/sql/` — schema and numbered migrations (`004`/`005` are generated seeds and are gitignored)
-- `src/tools/` — devstack, fixture seeder, user-seed generator, the two verifiers
+- `sites/<vhost>/` — one directory per Apache vhost, deployed to that vhost's web root
+- `sites/reporting/app/` — `Auth`, `Sections`, `Reports`, the metric layer, views
+- `src/sql/` — schema and numbered migrations; `004`/`005` are generated seeds, gitignored
+- `src/tools/` — devstack, fixture seeder, user-seed generator, verifiers
 - `deploy/` — Apache vhost samples and deploy notes
-- `docs/specs/` — the assignment specifications
+- `docs/specs/` — assignment specifications
