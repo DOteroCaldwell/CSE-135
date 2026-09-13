@@ -36,7 +36,7 @@ jobs:
       - name: Build Go CGI binaries
         run: |
           set -euo pipefail
-          out="$GITHUB_WORKSPACE/sites/main/hw2/go"
+          out="$GITHUB_WORKSPACE/sites/test/hw2/go"
           mkdir -p "$out"
           cd src/hw2/go
           go vet ./...

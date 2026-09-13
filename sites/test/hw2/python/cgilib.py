@@ -1,0 +1,309 @@
+#!/usr/bin/env python3
+"""Shared helpers for the HW2 Python CGI demos.
+
+Deliberately stdlib-only, and deliberately *not* using the `cgi` module: it is
+deprecated in Python 3.12 and removed in 3.13, so the body parsing here reads
+CONTENT_LENGTH off stdin and parses it directly.
+"""
+
+import html
+import json
+import os
+import re
+import secrets
+import socket
+import sys
+import time
+from datetime import datetime, timezone
+from http.cookies import SimpleCookie
+from urllib.parse import parse_qs
+
+LANG_NAME = "Python"
+TEAM_NAME = "Diego — UCSD Wrestling Club"
+
+# Overridable for local testing only. Apache never sets this, and it cannot be
+# injected through a request header (those all arrive HTTP_-prefixed).
+SESSION_DIR = os.environ.get("HW2_SESSION_DIR", "/var/lib/cse135/sessions")
+SESSION_COOKIE = "HW2PYSESS"
+# The session ID arrives from a client-controlled cookie and is used to build a
+# filename, so it is validated against this before it ever touches the disk.
+SESSION_ID_RE = re.compile(r"^[A-Za-z0-9_-]{22,64}$")
+SESSION_MAX_AGE = 24 * 60 * 60
+
+
+def _init_stdout() -> None:
+    """CGI writes bytes; make sure they are UTF-8 regardless of server locale."""
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", newline="")
+    except AttributeError:  # pragma: no cover - very old interpreters
+        pass
+
+
+_init_stdout()
+
+
+# --------------------------------------------------------------------------
+# request
+# --------------------------------------------------------------------------
+
+def env(name: str, default: str = "") -> str:
+    return os.environ.get(name, default)
+
+
+def client_ip() -> str:
+    return env("REMOTE_ADDR", "unknown")
+
+
+def user_agent() -> str:
+    return env("HTTP_USER_AGENT", "(none sent)")
+
+
+def server_hostname() -> str:
+    return env("SERVER_NAME") or socket.gethostname()
+
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
+
+
+def method() -> str:
+    return env("REQUEST_METHOD", "GET").upper()
+
+
+def query_fields() -> dict:
+    """Flatten the query string to one value per key."""
+    return {k: v[0] for k, v in parse_qs(env("QUERY_STRING"), keep_blank_values=True).items()}
+
+
+def raw_body() -> str:
+    """Read exactly CONTENT_LENGTH bytes. Never read to EOF under CGI."""
+    try:
+        length = int(env("CONTENT_LENGTH", "0") or 0)
+    except ValueError:
+        return ""
+    if length <= 0:
+        return ""
+    return sys.stdin.buffer.read(length).decode("utf-8", errors="replace")
+
+
+def parsed_body() -> tuple:
+    """Return (fields, raw). Handles JSON and x-www-form-urlencoded alike."""
+    raw = raw_body()
+    ctype = env("CONTENT_TYPE").lower()
+    if not raw:
+        return {}, ""
+    if "application/json" in ctype:
+        try:
+            decoded = json.loads(raw)
+        except json.JSONDecodeError:
+            return {}, raw
+        return (decoded if isinstance(decoded, dict) else {"_value": decoded}), raw
+    fields = {k: v[0] for k, v in parse_qs(raw, keep_blank_values=True).items()}
+    return fields, raw
+
+
+def cookies() -> SimpleCookie:
+    jar = SimpleCookie()
+    jar.load(env("HTTP_COOKIE"))
+    return jar
+
+
+# --------------------------------------------------------------------------
+# response
+# --------------------------------------------------------------------------
+
+def send_headers(content_type: str = "text/html; charset=utf-8", extra=None,
+                 status: str = "") -> None:
+    out = sys.stdout
+    if status:
+        out.write("Status: %s\r\n" % status)
+    out.write("Content-Type: %s\r\n" % content_type)
+    out.write("Cache-Control: no-store\r\n")
+    out.write("X-Content-Type-Options: nosniff\r\n")
+    for line in (extra or []):
+        out.write("%s\r\n" % line)
+    out.write("\r\n")
+
+
+def h(value) -> str:
+    """Escape for HTML. quote=True so the value is safe inside attributes."""
+    return html.escape("" if value is None else str(value), quote=True)
+
+
+def page_top(title: str, extra_headers=None) -> None:
+    send_headers(extra=extra_headers)
+    sys.stdout.write(
+        "<!DOCTYPE html>\n"
+        '<html lang="en">\n\n'
+        "<head>\n"
+        '  <meta charset="utf-8">\n'
+        '  <meta name="viewport" content="width=device-width, initial-scale=1">\n'
+        '  <link rel="icon" href="/favicon.ico" sizes="any">\n'
+        '  <link rel="stylesheet" href="/css/style.css">\n'
+        '  <link rel="stylesheet" href="/hw2/hw2.css">\n'
+        "  <title>%s</title>\n"
+        "</head>\n\n"
+        "<body>\n"
+        "  <header>\n"
+        "    <h1>%s</h1>\n"
+        '    <p class="tagline"><span class="lang-badge">%s</span> %s</p>\n'
+        "  </header>\n\n"
+        "  <main>\n"
+        % (h(title), h(title), h(LANG_NAME), h(TEAM_NAME))
+    )
+
+
+def page_bottom() -> None:
+    sys.stdout.write(
+        '    <p><a href="/hw2/">&larr; HW2 index</a> · <a href="/">Home</a></p>\n'
+        "  </main>\n\n"
+        "  <footer>\n"
+        "    <p>CSE 135 · HW2 · generated by %s %s</p>\n"
+        "  </footer>\n"
+        "</body>\n\n"
+        "</html>\n" % (h(LANG_NAME), h("%d.%d.%d" % sys.version_info[:3]))
+    )
+
+
+def kv_table(rows: dict, caption: str) -> None:
+    out = sys.stdout
+    out.write('    <table class="kv">\n')
+    out.write("      <caption>%s</caption>\n" % h(caption))
+    out.write("      <tbody>\n")
+    if not rows:
+        out.write('        <tr><td colspan="2"><em>(nothing)</em></td></tr>\n')
+    for key, value in rows.items():
+        if isinstance(value, (dict, list)):
+            value = json.dumps(value)
+        out.write('        <tr><th scope="row">%s</th><td>%s</td></tr>\n'
+                  % (h(key), h(value)))
+    out.write("      </tbody>\n    </table>\n")
+
+
+def send_json(data: dict, extra_headers=None) -> None:
+    send_headers("application/json; charset=utf-8", extra=extra_headers)
+    sys.stdout.write(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
+
+
+def redirect(location: str, extra_headers=None) -> None:
+    out = sys.stdout
+    out.write("Status: 303 See Other\r\n")
+    out.write("Location: %s\r\n" % location)
+    for line in (extra_headers or []):
+        out.write("%s\r\n" % line)
+    out.write("\r\n")
+
+
+# --------------------------------------------------------------------------
+# server-side session store (file-backed; Python CGI has no native sessions)
+# --------------------------------------------------------------------------
+
+def _session_path(sid: str) -> str:
+    if not SESSION_ID_RE.match(sid):
+        raise ValueError("malformed session id")
+    return os.path.join(SESSION_DIR, sid + ".json")
+
+
+def _sweep(probability: int = 20) -> None:
+    """Occasionally drop expired session files, the way PHP's gc does."""
+    if secrets.randbelow(probability) != 0:
+        return
+    cutoff = time.time() - SESSION_MAX_AGE
+    try:
+        for name in os.listdir(SESSION_DIR):
+            path = os.path.join(SESSION_DIR, name)
+            try:
+                if os.path.isfile(path) and os.path.getmtime(path) < cutoff:
+                    os.unlink(path)
+            except OSError:
+                pass
+    except OSError:
+        pass
+
+
+def new_session_id() -> str:
+    return secrets.token_urlsafe(24)
+
+
+def current_session_id() -> str:
+    morsel = cookies().get(SESSION_COOKIE)
+    if morsel and SESSION_ID_RE.match(morsel.value):
+        return morsel.value
+    return ""
+
+
+def load_session(sid: str) -> dict:
+    if not sid:
+        return {}
+    try:
+        with open(_session_path(sid), "r", encoding="utf-8") as fh:
+            loaded = json.load(fh)
+        return loaded if isinstance(loaded, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+
+def save_session(sid: str, payload: dict) -> None:
+    os.makedirs(SESSION_DIR, mode=0o700, exist_ok=True)
+    _sweep()
+    path = _session_path(sid)
+    tmp = "%s.%d.tmp" % (path, os.getpid())
+    # 0600 explicitly: the store holds session contents for every visitor.
+    fd = os.open(tmp, os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        json.dump(payload, fh)
+    os.replace(tmp, path)  # atomic
+
+
+def destroy_session(sid: str) -> None:
+    if not sid:
+        return
+    try:
+        os.unlink(_session_path(sid))
+    except (OSError, ValueError):
+        pass
+
+
+def session_cookie_header(sid: str, expire: bool = False) -> str:
+    attrs = "Path=/hw2/; HttpOnly; Secure; SameSite=Lax"
+    if expire:
+        return "Set-Cookie: %s=; %s; Max-Age=0" % (SESSION_COOKIE, attrs)
+    return "Set-Cookie: %s=%s; %s" % (SESSION_COOKIE, sid, attrs)
+
+
+def csrf_token(session: dict) -> str:
+    if not session.get("csrf"):
+        session["csrf"] = secrets.token_hex(16)
+    return session["csrf"]
+
+
+def csrf_ok(session: dict, sent) -> bool:
+    return bool(session.get("csrf")) and secrets.compare_digest(
+        str(session.get("csrf")), str(sent or "")
+    )
+
+
+def begin_session():
+    """Resolve (or mint) the session for this request.
+
+    Returns (sid, session_dict, csrf_token, response_headers). The Set-Cookie
+    header is always returned so the browser keeps the ID; only the ID travels,
+    never the contents.
+    """
+    sid = current_session_id()
+    fresh = not sid
+    if fresh:
+        sid = new_session_id()
+    session = load_session(sid)
+    before = session.get("csrf")
+    token = csrf_token(session)
+    if fresh or before != token:
+        save_session(sid, session)
+    return sid, session, token, [session_cookie_header(sid)]
+
+
+if __name__ == "__main__":
+    # This directory is SetHandler cgi-script, so a direct request would try to
+    # execute the library. Answer with a valid response instead of a 500.
+    send_headers("text/plain; charset=utf-8", status="403 Forbidden")
+    sys.stdout.write("Not a page.\n")

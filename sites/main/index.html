@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#182B49"/>
+    <title>NCWA Team at UC San Diego</title>
+    <link rel="icon" href="media/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ucsd: {
+                            navy: '#182B49',
+                            yellow: '#FFCD00',
+                            blue: '#00629B',
+                            gold: '#C69214'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Source Sans 3"', 'system-ui', 'sans-serif'],
+                    },
+                    animation: {
+                        'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Source Sans 3 Font (self-hosted) -->
+    <link rel="preload" href="fonts/SourceSans3-latin.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="fonts/fonts.css">
+    <style>
+        /* Hide scrollbar for cleaner look */
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        
+        .hero-pattern {
+            background-color: #182B49;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%231f3659' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+        
+        /* Safe area padding for mobile bottom nav on newer iPhones */
+        .pb-safe {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        html {
+            background-color: #182B49;
+        }
+    </style>
+</head>
+<body class="font-sans text-gray-800 antialiased bg-ucsd-navy pb-[80px] md:pb-0 h-screen overflow-hidden">
+
+    <!-- Desktop Navigation Bar (Hidden on Mobile) -->
+    <nav class="hidden md:block fixed top-0 w-full z-50 bg-ucsd-navy/90 backdrop-blur-md border-b-4 border-ucsd-yellow transition-all duration-300">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <!-- Logo -->
+                <a href="index.html" class="flex-shrink-0 flex items-center space-x-3 group">
+                    <div class="w-10 h-10 flex items-center justify-center text-ucsd-navy group-hover:scale-110 transition-transform">
+                      <img src="media/Trident_Gold.svg">
+                    </div>
+                    <div>
+                        <h1 class="text-white font-bold text-xl tracking-wide uppercase group-hover:text-ucsd-yellow transition-colors">Club Wrestling at UC San Diego</h1>
+                    </div>
+                </a>
+                
+                <!-- Desktop Menu Links -->
+                <div class="flex items-baseline space-x-8">
+                    <a href="about.html" class="text-gray-300 hover:text-ucsd-yellow px-3 py-2 rounded-md text-sm font-medium transition-colors">About</a>
+                    <a href="schedule.html" class="text-gray-300 hover:text-ucsd-yellow px-3 py-2 rounded-md text-sm font-medium transition-colors">Schedule</a>
+                    <a href="join.html" class="text-gray-300 hover:text-ucsd-yellow px-3 py-2 rounded-md text-sm font-medium transition-colors">Join</a>
+                    <a href="connect.html" class="text-gray-300 hover:text-ucsd-yellow px-3 py-2 rounded-md text-sm font-medium transition-colors">Connect</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Bottom Navigation Bar (Visible only on Mobile) -->
+    <!-- This replaces the hamburger menu for 1-touch access -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-ucsd-navy border-t border-white/10 shadow-[0_-4px_20px_rgba(0,0,0,0.3)] pb-safe">
+        <div class="grid grid-cols-5 h-16 items-center justify-items-center">
+            <!-- Active Link (Home) -->
+            <a href="index.html" class="flex flex-col items-center justify-center w-full h-full text-ucsd-yellow">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-6 h-6 mb-1">
+                    <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+                    <path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                </svg>
+                <span class="text-[10px] font-bold uppercase tracking-wider">Home</span>
+            </a>
+            
+            <!-- Inactive Links -->
+            <a href="about.html" class="flex flex-col items-center justify-center w-full h-full text-gray-400 ">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-6 h-6 mb-1">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 16v-4" />
+                    <path d="M12 8h.01" />
+                </svg>
+                <span class="text-[10px] font-medium uppercase tracking-wider">About</span>
+            </a>
+            
+            <a href="schedule.html" class="flex flex-col items-center justify-center w-full h-full text-gray-400 ">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-6 h-6 mb-1">
+                    <path d="M8 2v3" />
+                    <path d="M16 2v3" />
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <path d="M3 9h18" />
+                </svg>
+                <span class="text-[10px] font-medium uppercase tracking-wider">Times</span>
+            </a>
+            
+            <a href="join.html" class="flex flex-col items-center justify-center w-full h-full text-gray-400 ">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-6 h-6 mb-1">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <line x1="19" x2="19" y1="8" y2="14" />
+                    <line x1="22" x2="16" y1="11" y2="11" />
+                </svg>
+                <span class="text-[10px] font-medium uppercase tracking-wider">Join</span>
+            </a>
+            
+            <a href="connect.html" class="flex flex-col items-center justify-center w-full h-full text-gray-400 ">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-6 h-6 mb-1">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                    <path d="M16 3.128a4 4 0 0 1 0 7.744" />
+                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                    <circle cx="9" cy="7" r="4" />
+                </svg>
+                <span class="text-[10px] font-medium uppercase tracking-wider">Connect</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Full Screen Minimal Hero -->
+    <main class="relative h-full w-full flex items-center justify-center overflow-hidden">
+        <!-- Background Carousel -->
+        <div class="absolute inset-0 z-0 bg-ucsd-navy">
+            <!-- Image 1 -->
+            <img src="media/media-day.jpg" 
+                 alt="Inagural Co-ed Team" 
+                 class="hero-slide absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-100 ease-in-out">
+            
+            <!-- Image 2 -->
+            <img src="media/takedown.JPG"
+                 alt="Wrestlers Training" 
+                 class="hero-slide absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-0 ease-in-out">
+
+            <!-- Image 3 -->
+            <img src="media/w-team.jpg"
+                 alt="Inagural Womens Team" 
+                 class="hero-slide absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-0 ease-in-out">
+
+            <!-- Image 4 -->
+            <img src="media/sam.JPG"
+                 alt="Wrestler grabs drink of water" 
+                 class="hero-slide absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-0 ease-in-out">
+            
+            <!-- Image 5 -->
+            <img src="media/team_fall25.jpeg"
+                 alt="Fall 2025 Wrestling Team" 
+                 class="hero-slide absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-0 ease-in-out">
+
+            <!-- Image 6 -->
+            <img src="media/andy.JPG"
+                 alt="Coach Cook" 
+                 class="hero-slide absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-0 ease-in-out">
+
+            <!-- Image 7 -->
+            <img src="media/freestyle.JPG"
+                 alt="Takedown in Competition" 
+                 class="hero-slide absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 opacity-0 ease-in-out">
+
+            <!-- Permanent Gradient Overlay (Ensures text readability on all slides) -->
+            <div class="absolute inset-0 bg-gradient-to-t from-ucsd-navy via-ucsd-navy/80 to-ucsd-navy/40 z-10"></div>
+        </div>
+
+        <!-- Minimal Content -->
+        <div class="relative z-20 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col items-center text-center animate-fade-in-up">
+            
+            <!-- Mobile Logo (Visible only on mobile to save header space) -->
+            <div class="md:hidden mb-8 w-16 h-16  flex items-center justify-center text-ucsd-navy">
+                <img src="media/Trident_Gold.svg">
+            </div>
+
+            <h2 class="text-ucsd-yellow font-bold tracking-[0.2em] uppercase text-sm md:text-base mb-4">
+                Est. 2024 • UC San Diego
+            </h2>
+            
+            <h1 class="text-5xl md:text-8xl font-black text-white mb-6 tracking-tighter leading-none drop-shadow-2xl">
+                TRITON<br>
+                WRESTLING
+            </h1>
+            
+            <p class="mt-2 text-lg md:text-2xl text-gray-300 mb-10 max-w-2xl font-light drop-shadow-md">
+                Student-led NCWA wrestling team at UC San Diego
+            </p>
+
+            <div class="flex flex-col w-full max-w-xs sm:flex-row sm:max-w-md gap-4">
+                <a href="join.html" class="flex-1 px-8 py-4 bg-ucsd-yellow text-ucsd-navy font-bold rounded-lg shadow-lg hover:bg-white transform transition-all duration-200 flex items-center justify-center gap-2">
+                    Start Wrestling
+                </a>
+                <a href="schedule.html" class="flex-1 px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 text-white font-bold rounded-lg hover:bg-white hover:text-ucsd-navy transition-all duration-200 text-center">
+                    Schedule
+                </a>
+            </div>
+
+            <!-- Social Proof / Footer-like element inside Hero -->
+            <div class="mt-12 flex justify-center space-x-8">
+                
+                <a href="https://www.instagram.com/ucsdwrestlingclub/" class="group inline-block transform transition-all duration-200 hover:scale-110">
+                    <div class="w-6 h-6 bg-gray-400 group-hover:bg-ucsd-yellow transition-colors duration-200" 
+                        style="-webkit-mask: url('media/Instagram_Glyph_White.svg') center/contain no-repeat; mask: url('media/Instagram_Glyph_White.svg') center/contain no-repeat;">
+                    </div>
+                </a>
+                
+                <a href="mailto:clubwrestling@ucsd.edu" class="group inline-block text-gray-400 hover:text-ucsd-yellow transform transition-all duration-200 hover:scale-110">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="w-6 h-6">
+                        <path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7" />
+                        <rect x="2" y="4" width="20" height="16" rx="2" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script>
+        // Carousel Logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const slides = document.querySelectorAll('.hero-slide');
+            let currentSlide = 0;
+            const slideInterval = 5000; // 5 seconds
+
+            setInterval(() => {
+                // Fade out current
+                slides[currentSlide].classList.remove('opacity-100');
+                slides[currentSlide].classList.add('opacity-0');
+
+                // Calculate next
+                currentSlide = (currentSlide + 1) % slides.length;
+
+                // Fade in next
+                slides[currentSlide].classList.remove('opacity-0');
+                slides[currentSlide].classList.add('opacity-100');
+            }, slideInterval);
+        });
+    </script>
+</body>
+</html>

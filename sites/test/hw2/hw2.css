@@ -1,0 +1,88 @@
+/* HW2 demo pages — shared table/output styling. Extends /css/style.css. */
+table.kv {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.9rem;
+}
+
+table.kv th,
+table.kv td {
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+table.kv th {
+  width: 33%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600;
+}
+
+table.kv td {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  word-break: break-word;
+}
+
+.lang-badge {
+  display: inline-block;
+  padding: 0.15em 0.6em;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+pre.out {
+  background: var(--border);
+  padding: 0.75rem;
+  overflow-x: auto;
+  font-size: 0.85rem;
+}
+
+.field-row {
+  margin-bottom: 0.75rem;
+}
+
+.field-row label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+
+.field-row input,
+.field-row select {
+  width: 100%;
+  padding: 0.4rem;
+  font: inherit;
+  color: var(--fg);
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.note {
+  border-left: 3px solid var(--accent);
+  padding-left: 0.75rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+/* Progressive enhancement: the marker class is set in <head> before paint.
+   Script off -> only .nojs-only shows. Script on -> only .js-only shows. */
+.js-only {
+  display: none;
+}
+
+.js .js-only {
+  display: block;
+}
+
+.js .nojs-only {
+  display: none;
+}
+
+.muted {
+  color: var(--muted);
+  font-weight: normal;
+}
