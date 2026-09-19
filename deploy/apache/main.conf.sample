@@ -12,6 +12,10 @@
         Options -Indexes +FollowSymLinks
         AllowOverride All
         Require all granted
+        # Clean URLs (/schedule -> schedule.html) live in sites/main/.htaccess,
+        # which rsyncs up with the site. To keep them here instead, paste the
+        # RewriteEngine block from that file into this <Directory> — the
+        # syntax is identical. Either way: `sudo a2enmod rewrite` once.
     </Directory>
 
     # HW1 Step 7 — custom 404

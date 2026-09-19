@@ -1,0 +1,17 @@
+# Clean URLs for the club site: /schedule serves schedule.html, and
+# /schedule.html redirects to /schedule. Needs `sudo a2enmod rewrite` on the
+# droplet (AllowOverride All is already set in deploy/apache/main.conf.sample).
+RewriteEngine On
+
+# (a) Hide the extension: /foo.html -> 301 /foo.
+#     Matches THE_REQUEST (the raw request line), not REQUEST_URI, so the
+#     internal rewrite in (b) can't re-trigger this rule and loop.
+RewriteCond %{THE_REQUEST} \s/([^\s?]+)\.html[\s?] [NC]
+RewriteRule ^ /%1 [R=301,L]
+
+# (b) Serve the clean URL: /foo -> foo.html internally, only when that file
+#     exists, so real 404s still fall through to the ErrorDocument.
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{DOCUMENT_ROOT}/$1.html -f
+RewriteRule ^([^/]+)/?$ $1.html [L]
