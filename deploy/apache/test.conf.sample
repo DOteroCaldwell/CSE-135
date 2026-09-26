@@ -18,7 +18,7 @@
 
 <VirtualHost *:80>
         ServerName test.ucsdwrestlingclub.com
-        ServerAdmin clubwrestling@ucsd.edu
+        ServerAdmin tritonwrestlingclub@gmail.com
         DocumentRoot /var/www/test.ucsdwrestlingclub.com
 
         # HW3: per-vhost logs. These previously wrote to the shared error.log /

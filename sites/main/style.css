@@ -1202,6 +1202,7 @@ body.home {
   font-size: 1.125rem;
   line-height: 1.75rem;
   margin-top: 0.5rem;
+  overflow-wrap: anywhere;
 }
 
 .contact-card__icon--email {

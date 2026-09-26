@@ -22,7 +22,7 @@
 <IfModule mod_ssl.c>
 <VirtualHost *:443>
     ServerName collector.ucsdwrestlingclub.com
-    ServerAdmin clubwrestling@ucsd.edu
+    ServerAdmin tritonwrestlingclub@gmail.com
     DocumentRoot /var/www/collector.ucsdwrestlingclub.com
 
     ErrorLog  ${APACHE_LOG_DIR}/collector_error.log
