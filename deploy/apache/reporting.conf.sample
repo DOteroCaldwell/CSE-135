@@ -38,7 +38,7 @@
 <IfModule mod_ssl.c>
 <VirtualHost *:443>
     ServerName reporting.ucsdwrestlingclub.com
-    ServerAdmin clubwrestling@ucsd.edu
+    ServerAdmin tritonwrestlingclub@gmail.com
     DocumentRoot /var/www/reporting.ucsdwrestlingclub.com
 
     ErrorLog  ${APACHE_LOG_DIR}/reporting_error.log
