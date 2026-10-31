@@ -101,3 +101,54 @@ The remaining vhosts follow the same pattern with their own
 `ServerName`/`DocumentRoot`. Enable with `a2ensite`, then run `certbot` for SSL.
 
 Step-by-step droplet walkthroughs live in [`docs/guides/`](../docs/guides/).
+
+## TODO: finish the domain migration (Phase 5 — old-domain cutover)
+
+`tritonwrestling.com` is live and deployed (DNS on DigitalOcean, one 5-name
+Let's Encrypt cert, new vhosts, `DOMAIN` secret switched, PTR set). The old
+`ucsdwrestlingclub.com` vhosts are **still serving their own frozen copy** of the
+pre-migration code from `/var/www/*ucsdwrestlingclub.com`. These steps turn them
+into redirects. Run them in order on the droplet.
+
+- [ ] **Back up** first:
+      `sudo tar czf ~/pre-cutover-$(date +%F).tgz /etc/apache2 /etc/letsencrypt`
+- [ ] **Fold the old test cert into the main old cert** — must happen *before*
+      disabling the old vhosts, since certbot's apache authenticator needs them:
+      ```bash
+      sudo certbot certonly --apache --cert-name ucsdwrestlingclub.com --expand \
+        -d ucsdwrestlingclub.com -d www.ucsdwrestlingclub.com -d test.ucsdwrestlingclub.com \
+        -d collector.ucsdwrestlingclub.com -d reporting.ucsdwrestlingclub.com
+      ```
+- [ ] **Swap the old vhosts for the redirect vhost** (`apache/legacy-redirect.conf.sample`;
+      full commands in its header): `a2dissite` the 8 old files (keep them in
+      `sites-available` for rollback), `a2ensite legacy-redirect`, configtest, reload.
+- [ ] `sudo certbot delete --cert-name test.ucsdwrestlingclub.com` (superseded).
+- [ ] **Make tritonwrestling.com the server default** (`apache/default.conf.sample`):
+      install as `000-default.conf`, add global `ServerName tritonwrestling.com`
+      (`conf-available/servername.conf` + `a2enconf`), configtest, reload, then
+      `sudo apache2ctl -S` must list `000-default` as default on `*:80` and `*:443`.
+- [ ] **Droplet hostname:** `sudo hostnamectl set-hostname tritonwrestling.com`,
+      fix the `127.0.1.1` line in `/etc/hosts`; `/etc/mailname` and Postfix
+      `myhostname` too if present.
+- [ ] **Rewrite stored hosts in the DB** — only after the redirects are live:
+      ```bash
+      sudo mysqldump cse135 > ~/cse135-pre-008-$(date +%F).sql
+      sudo mysql < ~/cse135/sql/008-domain-rename.sql   # ends with a check; all counts 0
+      ```
+- [ ] **Verify** (from a laptop):
+      - each old name, http and https, redirects with path + query kept, e.g.
+        `curl -sI 'https://test.ucsdwrestlingclub.com/x?y=1'` →
+        `Location: https://test.tritonwrestling.com/x?y=1` (301; collector/reporting 308)
+      - `curl -si -X POST https://collector.ucsdwrestlingclub.com/log` → 308
+      - `curl -sI http://165.22.133.154` and `curl -skI https://165.22.133.154` →
+        redirect to `https://tritonwrestling.com/`
+      - `sudo certbot certificates` lists exactly 2 certs (5 names each);
+        `sudo certbot renew --dry-run` passes for both
+      - `src/tools/verify/auth-matrix.sh https://reporting.tritonwrestling.com "$PASS"` passes;
+        dashboard host filter shows only `tritonwrestling.com` hosts
+- [ ] **After ~a week of clean `legacy_redirect_*.log`:** delete the 4
+      `/var/www/*ucsdwrestlingclub.com` roots and the 8 disabled old vhost files.
+
+Rollback any time before the last step: `a2dissite legacy-redirect`, `a2ensite`
+the old files, reload. Keep `ucsdwrestlingclub.com` registered and auto-renewing
+for as long as the redirects should work.
