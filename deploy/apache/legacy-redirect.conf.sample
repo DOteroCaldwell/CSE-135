@@ -1,0 +1,89 @@
+# Legacy domain — ucsdwrestlingclub.com redirects to tritonwrestling.com
+#
+# Replaces the 8 old per-vhost files (4 x :80, 4 x -le-ssl). Install AFTER the
+# new tritonwrestling.com vhosts are live and verified:
+#
+#   # 1. Fold the old test cert into the main one while the old vhosts still exist
+#   sudo certbot certonly --apache --cert-name ucsdwrestlingclub.com --expand \
+#     -d ucsdwrestlingclub.com -d www.ucsdwrestlingclub.com -d test.ucsdwrestlingclub.com \
+#     -d collector.ucsdwrestlingclub.com -d reporting.ucsdwrestlingclub.com
+#   # 2. Swap the old vhosts for this file
+#   sudo a2dissite ucsdwrestlingclub.com ucsdwrestlingclub.com-le-ssl \
+#     test.ucsdwrestlingclub.com test.ucsdwrestlingclub.com-le-ssl \
+#     collector.ucsdwrestlingclub.com collector.ucsdwrestlingclub.com-le-ssl \
+#     reporting.ucsdwrestlingclub.com reporting.ucsdwrestlingclub.com-le-ssl
+#   sudo cp legacy-redirect.conf.sample /etc/apache2/sites-available/legacy-redirect.conf
+#   sudo a2ensite legacy-redirect
+#   sudo apachectl configtest && sudo systemctl reload apache2
+#   # 3. The standalone test cert is now unused
+#   sudo certbot delete --cert-name test.ucsdwrestlingclub.com
+#
+# Rollback: a2dissite legacy-redirect, a2ensite the old files, reload.
+#
+# Status codes:
+#   apex / www / test   301  pages; browsers and search engines update links
+#   collector/reporting 308  same as 301 but the METHOD is preserved, so a POST
+#                            to /log or a PUT/DELETE to /api is not silently
+#                            turned into a GET by the client
+#
+# Path and query string are preserved (mod_rewrite appends the query string
+# when the substitution has none of its own). No auth here: Basic auth is
+# enforced by the destination vhost. No mod_usertrack either, so a redirect
+# hop never mints a sid. Logged separately so redirect hits never land in
+# test_access.log and confuse log/beacon reconciliation.
+
+<VirtualHost *:80>
+    ServerName  ucsdwrestlingclub.com
+    ServerAlias www.ucsdwrestlingclub.com test.ucsdwrestlingclub.com \
+                collector.ucsdwrestlingclub.com reporting.ucsdwrestlingclub.com
+    ServerAdmin tritonwrestlingclub@gmail.com
+
+    ErrorLog  ${APACHE_LOG_DIR}/legacy_redirect_error.log
+    CustomLog ${APACHE_LOG_DIR}/legacy_redirect_access.log combined
+
+    Header always set Server "CSE135 Server"
+
+    RewriteEngine on
+
+    # Let's Encrypt HTTP-01 challenges must be answered HERE so the old cert
+    # keeps renewing; the new host has no such token.
+    RewriteRule ^/\.well-known/acme-challenge/ - [L]
+
+    RewriteCond %{HTTP_HOST} ^(?:www\.)?ucsdwrestlingclub\.com(?::\d+)?$ [NC]
+    RewriteRule ^ https://tritonwrestling.com%{REQUEST_URI} [R=301,L,NE]
+
+    RewriteCond %{HTTP_HOST} ^test\.ucsdwrestlingclub\.com(?::\d+)?$ [NC]
+    RewriteRule ^ https://test.tritonwrestling.com%{REQUEST_URI} [R=301,L,NE]
+
+    RewriteCond %{HTTP_HOST} ^(collector|reporting)\.ucsdwrestlingclub\.com(?::\d+)?$ [NC]
+    RewriteRule ^ https://%1.tritonwrestling.com%{REQUEST_URI} [R=308,L,NE]
+</VirtualHost>
+
+<IfModule mod_ssl.c>
+<VirtualHost *:443>
+    ServerName  ucsdwrestlingclub.com
+    ServerAlias www.ucsdwrestlingclub.com test.ucsdwrestlingclub.com \
+                collector.ucsdwrestlingclub.com reporting.ucsdwrestlingclub.com
+    ServerAdmin tritonwrestlingclub@gmail.com
+
+    ErrorLog  ${APACHE_LOG_DIR}/legacy_redirect_error.log
+    CustomLog ${APACHE_LOG_DIR}/legacy_redirect_access.log combined
+
+    Header always set Server "CSE135 Server"
+
+    RewriteEngine on
+
+    RewriteCond %{HTTP_HOST} ^(?:www\.)?ucsdwrestlingclub\.com(?::\d+)?$ [NC]
+    RewriteRule ^ https://tritonwrestling.com%{REQUEST_URI} [R=301,L,NE]
+
+    RewriteCond %{HTTP_HOST} ^test\.ucsdwrestlingclub\.com(?::\d+)?$ [NC]
+    RewriteRule ^ https://test.tritonwrestling.com%{REQUEST_URI} [R=301,L,NE]
+
+    RewriteCond %{HTTP_HOST} ^(collector|reporting)\.ucsdwrestlingclub\.com(?::\d+)?$ [NC]
+    RewriteRule ^ https://%1.tritonwrestling.com%{REQUEST_URI} [R=308,L,NE]
+
+    Include /etc/letsencrypt/options-ssl-apache.conf
+    SSLCertificateFile    /etc/letsencrypt/live/ucsdwrestlingclub.com/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/ucsdwrestlingclub.com/privkey.pem
+</VirtualHost>
+</IfModule>

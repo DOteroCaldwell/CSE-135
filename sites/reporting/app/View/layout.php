@@ -81,8 +81,8 @@ function layout_footer(): void
     ?>
 </main>
 <footer class="pagefoot">
-  <p>CSE 135 · reporting.ucsdwrestlingclub.com · data collected by
-     <a href="https://collector.ucsdwrestlingclub.com/collector.js">collector.js</a></p>
+  <p>CSE 135 · reporting.tritonwrestling.com · data collected by
+     <a href="https://collector.tritonwrestling.com/collector.js">collector.js</a></p>
 </footer>
 </body>
 </html>

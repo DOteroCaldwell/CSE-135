@@ -168,7 +168,7 @@ ob_start();
 <?php endif; ?>
 <?= $row['html'] ?>
   <footer class="pagefoot" style="display:block">
-    <p>CSE 135 Analytics · reporting.ucsdwrestlingclub.com · a fixed view; the live report may have moved on.</p>
+    <p>CSE 135 Analytics · reporting.tritonwrestling.com · a fixed view; the live report may have moved on.</p>
   </footer>
 </main>
 </body>

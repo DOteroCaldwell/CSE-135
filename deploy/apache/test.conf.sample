@@ -1,4 +1,4 @@
-# HW3 Part 2 — test.ucsdwrestlingclub.com
+# HW3 Part 2 — test.tritonwrestling.com
 #
 # This is the LIVE droplet config with the HW3 changes folded in. Every change is
 # marked "HW3:" or "BUGFIX:". Diff it against the server's current file rather than
@@ -11,15 +11,15 @@
 # READ THIS FIRST — WHERE THE HW3 BLOCKS ACTUALLY GO:
 # Client Hints require a secure context, and this :80 vhost redirects everything to
 # HTTPS, so the Client Hints and usertrack blocks belong in the certbot-generated
-#   /etc/apache2/sites-available/test.ucsdwrestlingclub.com-le-ssl.conf
+#   /etc/apache2/sites-available/test.tritonwrestling.com-le-ssl.conf
 # NOT here. They are reproduced at the bottom of this file, ready to paste.
 # Putting them only in the :80 vhost is a no-op — that vhost serves one 301 and
 # nothing else.
 
 <VirtualHost *:80>
-        ServerName test.ucsdwrestlingclub.com
+        ServerName test.tritonwrestling.com
         ServerAdmin tritonwrestlingclub@gmail.com
-        DocumentRoot /var/www/test.ucsdwrestlingclub.com
+        DocumentRoot /var/www/test.tritonwrestling.com
 
         # HW3: per-vhost logs. These previously wrote to the shared error.log /
         # access.log, which interleaves all four vhosts into one file — painful to
@@ -29,13 +29,13 @@
         LogLevel  warn
         CustomLog ${APACHE_LOG_DIR}/test_access.log combined_ch
 
-        # BUGFIX: the live config reads <Directory "var/www/test.ucsdwrestlingclub.com">
+        # BUGFIX: the live config reads <Directory "var/www/test.tritonwrestling.com">
         # with NO LEADING SLASH. Apache resolves a relative Directory path against
         # ServerRoot, so that block governs /etc/apache2/var/www/... — a path that does
         # not exist. The auth never applies and the test site is currently WIDE OPEN,
         # while `apachectl configtest` reports Syntax OK. Verified locally: relative
         # path => anonymous GET returns 200; absolute path => 401.
-        <Directory /var/www/test.ucsdwrestlingclub.com>
+        <Directory /var/www/test.tritonwrestling.com>
                 Options -Indexes +FollowSymLinks
                 AllowOverride All
 
@@ -53,20 +53,20 @@
         #Include conf-available/serve-cgi-bin.conf
 
         RewriteEngine on
-        # BUGFIX: this condition tested =ucsdwrestlingclub.com — the MAIN site's name,
-        # copy-pasted into the test vhost. %{SERVER_NAME} here is test.ucsdwrestlingclub.com
+        # BUGFIX: this condition tested =tritonwrestling.com — the MAIN site's name,
+        # copy-pasted into the test vhost. %{SERVER_NAME} here is test.tritonwrestling.com
         # (UseCanonicalName is Off by default, so it comes from the Host: header), the
         # "=" operator is an exact string match, so the condition never fired and HTTP
         # was never redirected to HTTPS. Verified locally: Host: test.example.com => 200,
         # Host: example.com => 301. That also means http:// visitors got no Client Hints,
         # since hints require a secure context.
-        RewriteCond %{SERVER_NAME} =test.ucsdwrestlingclub.com
+        RewriteCond %{SERVER_NAME} =test.tritonwrestling.com
         RewriteRule ^ https://%{SERVER_NAME}%{REQUEST_URI} [END,NE,R=permanent]
 </VirtualHost>
 
 
 # ============================================================================
-# PASTE INTO test.ucsdwrestlingclub.com-le-ssl.conf, inside <VirtualHost *:443>
+# PASTE INTO test.tritonwrestling.com-le-ssl.conf, inside <VirtualHost *:443>
 # ============================================================================
 # Certbot generated that file by copying the :80 vhost, so it already has the
 # ServerName/DocumentRoot/Directory block — apply the same two BUGFIXes there, add
@@ -85,18 +85,18 @@
 #
 #         # High-entropy hints are origin-scoped. Without this delegation the beacon
 #         # to collector.* would carry none of them.
-#         Header always set Permissions-Policy "ch-ua-platform-version=(self \"https://collector.ucsdwrestlingclub.com\"), ch-ua-arch=(self \"https://collector.ucsdwrestlingclub.com\"), ch-ua-bitness=(self \"https://collector.ucsdwrestlingclub.com\"), ch-ua-model=(self \"https://collector.ucsdwrestlingclub.com\"), ch-ua-full-version-list=(self \"https://collector.ucsdwrestlingclub.com\")"
+#         Header always set Permissions-Policy "ch-ua-platform-version=(self \"https://collector.tritonwrestling.com\"), ch-ua-arch=(self \"https://collector.tritonwrestling.com\"), ch-ua-bitness=(self \"https://collector.tritonwrestling.com\"), ch-ua-model=(self \"https://collector.tritonwrestling.com\"), ch-ua-full-version-list=(self \"https://collector.tritonwrestling.com\")"
 #
 #         # ---- HW3: server-minted session id (consumed by collector.js in Part 3) ----
 #         # Apache stamps the cookie on the first response it sends, so there is no
 #         # un-joinable first log line and JS-off visitors stay attributable. The value
 #         # is exposed to the log as the note %{cookie}n, which combined_ch logs as sid=.
 #         # CookieDomain must begin with a dot — that is what makes the cookie visible
-#         # to collector.ucsdwrestlingclub.com too. No CookieExpires => session cookie.
+#         # to collector.tritonwrestling.com too. No CookieExpires => session cookie.
 #         CookieTracking on
 #         CookieName     sid
 #         CookieStyle    Cookie
-#         CookieDomain   .ucsdwrestlingclub.com
+#         CookieDomain   .tritonwrestling.com
 #
 #         ErrorLog  ${APACHE_LOG_DIR}/test_error.log
 #         CustomLog ${APACHE_LOG_DIR}/test_access.log combined_ch

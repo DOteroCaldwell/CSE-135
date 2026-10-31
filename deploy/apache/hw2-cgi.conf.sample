@@ -22,17 +22,17 @@
 #  * PHP is not listed: it is handled by php-fpm through the existing
 #    SetHandler/ProxyFCGI configuration, not as CGI.
 
-<Directory /var/www/ucsdwrestlingclub.com/hw2/perl>
+<Directory /var/www/tritonwrestling.com/hw2/perl>
     Options +ExecCGI -Indexes
     SetHandler cgi-script
 </Directory>
 
-<Directory /var/www/ucsdwrestlingclub.com/hw2/python>
+<Directory /var/www/tritonwrestling.com/hw2/python>
     Options +ExecCGI -Indexes
     SetHandler cgi-script
 </Directory>
 
-<Directory /var/www/ucsdwrestlingclub.com/hw2/go>
+<Directory /var/www/tritonwrestling.com/hw2/go>
     Options +ExecCGI -Indexes
     SetHandler cgi-script
 </Directory>

@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-# Sitemap: https://ucsdwrestlingclub.com/sitemap.xml
+# Sitemap: https://tritonwrestling.com/sitemap.xml

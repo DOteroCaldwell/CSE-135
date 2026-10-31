@@ -1,6 +1,6 @@
 /*
  * CSE 135 — HW3 collector.js
- * Served from collector.ucsdwrestlingclub.com, executed on test.ucsdwrestlingclub.com.
+ * Served from collector.tritonwrestling.com, executed on test.tritonwrestling.com.
  *
  * Collects three categories of data and POSTs each to /log:
  *   static      — one payload per pageview, after load
@@ -12,12 +12,12 @@
 (function () {
     'use strict';
 
-    var ORIGIN   = 'https://collector.ucsdwrestlingclub.com';
+    var ORIGIN   = 'https://collector.tritonwrestling.com';
     var ENDPOINT = ORIGIN + '/log';
     var PIXEL    = ORIGIN + '/px.gif';
 
     var COOKIE_NAME   = 'sid';
-    var COOKIE_DOMAIN = '.ucsdwrestlingclub.com';
+    var COOKIE_DOMAIN = '.tritonwrestling.com';
 
     var IDLE_MS       = 2000;   // spec: gaps of >= 2s count as idle
     var MOUSE_MS      = 100;    // throttle for mousemove

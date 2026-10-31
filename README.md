@@ -12,17 +12,17 @@ behind four Apache virtual hosts. Grader credentials are in the submitted
 
 | Host | Role |
 | --- | --- |
-| <https://ucsdwrestlingclub.com> | Team site; links every deliverable |
-| <https://test.ucsdwrestlingclub.com> | Instrumented target site; `collector.js` runs here |
-| <https://collector.ucsdwrestlingclub.com/collector.js> | Collector and `/log` ingestion endpoint |
-| <https://reporting.ucsdwrestlingclub.com> | REST API and the authenticated reporting application |
+| <https://tritonwrestling.com> | Team site; links every deliverable |
+| <https://test.tritonwrestling.com> | Instrumented target site; `collector.js` runs here |
+| <https://collector.tritonwrestling.com/collector.js> | Collector and `/log` ingestion endpoint |
+| <https://reporting.tritonwrestling.com> | REST API and the authenticated reporting application |
 
 HW5 deliverables on the reporting host:
 
-- [Sign in](https://reporting.ucsdwrestlingclub.com/login.php) · [Dashboard](https://reporting.ucsdwrestlingclub.com/)
-- Reports: [Page load cost](https://reporting.ucsdwrestlingclub.com/reports/page-load-cost.php) (performance) · [Engagement](https://reporting.ucsdwrestlingclub.com/reports/engagement.php) (behaviour) · [Audience](https://reporting.ucsdwrestlingclub.com/reports/audience.php) (audience)
-- [Saved reports](https://reporting.ucsdwrestlingclub.com/saved/) — fixed views published by analysts, exportable to PDF; all a viewer sees
-- [User management](https://reporting.ucsdwrestlingclub.com/users.php) — roles and analyst section assignments; super admin only
+- [Sign in](https://reporting.tritonwrestling.com/login.php) · [Dashboard](https://reporting.tritonwrestling.com/)
+- Reports: [Page load cost](https://reporting.tritonwrestling.com/reports/page-load-cost.php) (performance) · [Engagement](https://reporting.tritonwrestling.com/reports/engagement.php) (behaviour) · [Audience](https://reporting.tritonwrestling.com/reports/audience.php) (audience)
+- [Saved reports](https://reporting.tritonwrestling.com/saved/) — fixed views published by analysts, exportable to PDF; all a viewer sees
+- [User management](https://reporting.tritonwrestling.com/users.php) — roles and analyst section assignments; super admin only
 - REST API: `/api/{sessions,static,performance,activity,resources}`, session or HTTP Basic auth
 
 ## What it does

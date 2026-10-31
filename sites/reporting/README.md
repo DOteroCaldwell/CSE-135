@@ -1,7 +1,7 @@
-# reporting.ucsdwrestlingclub.com
+# reporting.tritonwrestling.com
 
 The REST API and the authenticated MVC reporting dashboard. Deploys to
-`/var/www/reporting.ucsdwrestlingclub.com`.
+`/var/www/reporting.tritonwrestling.com`.
 
 Populated starting HW4. REST semantics (strict):
 

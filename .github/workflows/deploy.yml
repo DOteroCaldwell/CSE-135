@@ -6,7 +6,7 @@ name: Deploy to DigitalOcean Droplet
 #   DROPLET_HOST   - droplet IP or hostname
 #   DROPLET_USER   - deploy user (must own /var/www/* or use sudo-less rsync)
 #   DROPLET_SSH_KEY- private key whose public half is in that user's authorized_keys
-#   DOMAIN         - e.g. ucsdwrestlingclub.com   (used to build the web-root paths)
+#   DOMAIN         - e.g. tritonwrestling.com   (used to build the web-root paths)
 
 on:
   push:

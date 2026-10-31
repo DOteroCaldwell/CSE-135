@@ -1,4 +1,4 @@
-# HW3 — collector.ucsdwrestlingclub.com (:443)
+# HW3 — collector.tritonwrestling.com (:443)
 #
 # This mirrors the live -le-ssl.conf. The part that matters is the auth carve-out:
 # HW1 put `Require valid-user` over all four vhosts, and on this vhost that breaks
@@ -21,9 +21,9 @@
 
 <IfModule mod_ssl.c>
 <VirtualHost *:443>
-    ServerName collector.ucsdwrestlingclub.com
+    ServerName collector.tritonwrestling.com
     ServerAdmin tritonwrestlingclub@gmail.com
-    DocumentRoot /var/www/collector.ucsdwrestlingclub.com
+    DocumentRoot /var/www/collector.tritonwrestling.com
 
     ErrorLog  ${APACHE_LOG_DIR}/collector_error.log
     LogLevel  warn
@@ -32,7 +32,7 @@
     # test vhost's log for the same session.
     CustomLog ${APACHE_LOG_DIR}/collector_access.log combined_ch
 
-    <Directory "/var/www/collector.ucsdwrestlingclub.com">
+    <Directory "/var/www/collector.tritonwrestling.com">
         Options -Indexes +FollowSymLinks
         AllowOverride All
 
@@ -77,7 +77,7 @@
     # PerformanceResourceTiming zeroes transferSize and every timing detail for a
     # cross-origin resource unless the SERVING origin opts in with
     # Timing-Allow-Origin. collector.js is served from here and executed on
-    # test.ucsdwrestlingclub.com, so without this header it reports 0 bytes and 0 ms
+    # test.tritonwrestling.com, so without this header it reports 0 bytes and 0 ms
     # in its own resource-weight report.
     #
     # That would be a self-serving blind spot: collector.js is a synchronous,
@@ -90,11 +90,11 @@
     # NOT opted in — they are instrumentation side-effects rather than page weight,
     # and collector.js filters them out of its own reporting for the same reason.
     <Files "collector.js">
-        Header set Timing-Allow-Origin "https://test.ucsdwrestlingclub.com, https://ucsdwrestlingclub.com"
+        Header set Timing-Allow-Origin "https://test.tritonwrestling.com, https://tritonwrestling.com"
     </Files>
 
     Include /etc/letsencrypt/options-ssl-apache.conf
-    SSLCertificateFile    /etc/letsencrypt/live/ucsdwrestlingclub.com/fullchain.pem
-    SSLCertificateKeyFile /etc/letsencrypt/live/ucsdwrestlingclub.com/privkey.pem
+    SSLCertificateFile    /etc/letsencrypt/live/tritonwrestling.com/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/tritonwrestling.com/privkey.pem
 </VirtualHost>
 </IfModule>

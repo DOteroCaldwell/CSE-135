@@ -8,9 +8,9 @@
 # WHY conf-available AND NOT THE VHOST FILE:
 # apache2.conf parses conf-enabled/*.conf BEFORE sites-enabled/*.conf, and within
 # sites-enabled the glob sorts in C order — which puts certbot's
-#   test.ucsdwrestlingclub.com-le-ssl.conf   ('-' is 0x2D)
+#   test.tritonwrestling.com-le-ssl.conf   ('-' is 0x2D)
 # BEFORE
-#   test.ucsdwrestlingclub.com.conf          ('.' is 0x2E)
+#   test.tritonwrestling.com.conf          ('.' is 0x2E)
 #
 # So a LogFormat defined in the base vhost file is NOT yet defined when the SSL
 # vhost that uses it is parsed. That failure is silent and vicious: Apache does not

@@ -1,4 +1,4 @@
-# HW4/HW5 — reporting.ucsdwrestlingclub.com (:443)
+# HW4/HW5 — reporting.tritonwrestling.com (:443)
 #
 # Hosts the REST API (/api), the analytics dashboard, the three section reports,
 # saved reports and the PDF export.
@@ -37,9 +37,9 @@
 
 <IfModule mod_ssl.c>
 <VirtualHost *:443>
-    ServerName reporting.ucsdwrestlingclub.com
+    ServerName reporting.tritonwrestling.com
     ServerAdmin tritonwrestlingclub@gmail.com
-    DocumentRoot /var/www/reporting.ucsdwrestlingclub.com
+    DocumentRoot /var/www/reporting.tritonwrestling.com
 
     ErrorLog  ${APACHE_LOG_DIR}/reporting_error.log
     LogLevel  warn
@@ -57,7 +57,7 @@
     ErrorDocument 404 /404.php
     ErrorDocument 403 /403.php
 
-    <Directory "/var/www/reporting.ucsdwrestlingclub.com">
+    <Directory "/var/www/reporting.tritonwrestling.com">
         Options -Indexes +FollowSymLinks
         AllowOverride All
 
@@ -76,7 +76,7 @@
     # the web root wholesale, so app/ lands under DocumentRoot whether or not that
     # was intended. It carries its own .htaccess saying the same thing; this is the
     # copy that does not depend on AllowOverride still being set.
-    <Directory "/var/www/reporting.ucsdwrestlingclub.com/app">
+    <Directory "/var/www/reporting.tritonwrestling.com/app">
         Require all denied
     </Directory>
 
@@ -105,7 +105,7 @@
     </IfModule>
 
     Include /etc/letsencrypt/options-ssl-apache.conf
-    SSLCertificateFile    /etc/letsencrypt/live/ucsdwrestlingclub.com/fullchain.pem
-    SSLCertificateKeyFile /etc/letsencrypt/live/ucsdwrestlingclub.com/privkey.pem
+    SSLCertificateFile    /etc/letsencrypt/live/tritonwrestling.com/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/tritonwrestling.com/privkey.pem
 </VirtualHost>
 </IfModule>

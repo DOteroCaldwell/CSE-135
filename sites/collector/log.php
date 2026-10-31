@@ -14,8 +14,8 @@ declare(strict_types=1);
  */
 
 const ALLOWED_ORIGINS = [
-    'https://test.ucsdwrestlingclub.com',
-    'https://ucsdwrestlingclub.com',
+    'https://test.tritonwrestling.com',
+    'https://tritonwrestling.com',
 ];
 const CONFIG_PATH = '/etc/cse135/db.ini';
 const MAX_BODY    = 1048576; // 1 MB
@@ -220,8 +220,8 @@ $ua  = clip((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 512) ?: null;
  *
  * collector.js has always sent `href`; it was simply never stored, leaving `page`
  * (a bare path) as the only place column. That is adequate for exactly one
- * instrumented site and wrong for two: test.ucsdwrestlingclub.com/index.html and
- * ucsdwrestlingclub.com/index.html are an identical `page`. Parsing the host out
+ * instrumented site and wrong for two: test.tritonwrestling.com/index.html and
+ * tritonwrestling.com/index.html are an identical `page`. Parsing the host out
  * server-side keeps them separable without touching the client.
  */
 $href = (string) ($payload['href'] ?? '');

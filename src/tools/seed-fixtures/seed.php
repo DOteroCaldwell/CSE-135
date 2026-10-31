@@ -120,7 +120,7 @@ function uuid(): string {
 }
 
 $PAGES = ['/index.html', '/products.html', '/product-detail.html', '/checkout.html', '/liquidation.html'];
-$HOST  = 'test.ucsdwrestlingclub.com';
+$HOST  = 'test.tritonwrestling.com';
 
 // A deliberately varied fleet, so coverage checks have something to find and the
 // device-diversity caveat can actually clear.

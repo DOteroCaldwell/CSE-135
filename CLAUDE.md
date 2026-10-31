@@ -20,10 +20,10 @@ Reference material and tutorials for the whole project live at **https://cse135.
 
 All work is deployed to a **DigitalOcean Droplet running a LAMP+Node stack** (Ubuntu, Apache, MySQL/PostgreSQL, PHP, Node), fronted by Apache virtual hosts. The system is split across **four vhosts by role** — this separation is the backbone of the whole project:
 
-- `ucsdwrestlingclub.com` — main team site: homepage, member pages, links to every HW deliverable. This is the graders' entry point; **anything not linked from the homepage is treated as not submitted.**
-- `test.ucsdwrestlingclub.com` — the instrumented "target" site (e.g. the provided "Wrecked Tech" site) that the collector script runs on.
-- `collector.ucsdwrestlingclub.com` — serves `collector.js` and hosts the ingestion endpoint (`/log`) that writes collected data into the database.
-- `reporting.ucsdwrestlingclub.com` — the REST API and the authenticated MVC reporting dashboard.
+- `tritonwrestling.com` — main team site: homepage, member pages, links to every HW deliverable. This is the graders' entry point; **anything not linked from the homepage is treated as not submitted.**
+- `test.tritonwrestling.com` — the instrumented "target" site (e.g. the provided "Wrecked Tech" site) that the collector script runs on.
+- `collector.tritonwrestling.com` — serves `collector.js` and hosts the ingestion endpoint (`/log`) that writes collected data into the database.
+- `reporting.tritonwrestling.com` — the REST API and the authenticated MVC reporting dashboard.
 
 Apache is also configured for: SSL via Certbot, gzip/deflate compression, basic-auth on the team site, a spoofed `Server: CSE135 Server` response header, custom 404 page, and enriched access logging (COMBINED format + Client Hints). GitHub-based auto-deploy (webhook or pipeline) to the Droplet is expected rather than live editing.
 
@@ -31,7 +31,7 @@ Apache is also configured for: SSL via Certbot, gzip/deflate compression, basic-
 
 ```
 test site (browser)
-  → collector.js  (served from collector.ucsdwrestlingclub.com)
+  → collector.js  (served from collector.tritonwrestling.com)
       collects 3 data categories:
         • Static      — user agent, language, cookie/JS/CSS/image support, screen & window dims, connection type
         • Performance — Navigation Timing object, load start/end, total load ms

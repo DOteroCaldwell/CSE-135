@@ -8,7 +8,7 @@
 #
 # Usage:
 #   auth-matrix.sh http://localhost:8135 localdev-135
-#   auth-matrix.sh https://reporting.ucsdwrestlingclub.com "$PASS"
+#   auth-matrix.sh https://reporting.tritonwrestling.com "$PASS"
 #
 # Assumes the four HW5 accounts from src/tools/seed-users/make-users.php share one
 # password (they do by default). Anonymous checks need no password at all.

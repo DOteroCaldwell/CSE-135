@@ -1,0 +1,40 @@
+# Server-wide default vhost — makes tritonwrestling.com the droplet's default.
+#
+# Apache serves the FIRST vhost loaded for a port to any request whose Host
+# matches no ServerName/ServerAlias (bare IP, stale DNS, junk Host headers).
+# sites-enabled loads in C sort order, so the "000-" prefix guarantees these
+# two come first on :80 and :443.
+#
+#   sudo cp default.conf.sample /etc/apache2/sites-available/000-default.conf
+#   sudo a2ensite 000-default
+#   echo 'ServerName tritonwrestling.com' | sudo tee /etc/apache2/conf-available/servername.conf
+#   sudo a2enconf servername
+#   sudo apachectl configtest && sudo systemctl reload apache2
+#   sudo apache2ctl -S     # "default server" for *:80 and *:443 must be 000-default
+#
+# The :443 block needs the tritonwrestling.com cert to exist already
+# (certbot certonly --cert-name tritonwrestling.com ...). A bare-IP HTTPS request
+# will still see a name-mismatch warning — no public CA issues certs for an IP —
+# but once accepted, it is redirected to the canonical site.
+
+<VirtualHost *:80>
+    ServerName default.invalid
+    ErrorLog  ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+    Header always set Server "CSE135 Server"
+    Redirect permanent / https://tritonwrestling.com/
+</VirtualHost>
+
+<IfModule mod_ssl.c>
+<VirtualHost *:443>
+    ServerName default.invalid
+    ErrorLog  ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+    Header always set Server "CSE135 Server"
+    Redirect permanent / https://tritonwrestling.com/
+
+    Include /etc/letsencrypt/options-ssl-apache.conf
+    SSLCertificateFile    /etc/letsencrypt/live/tritonwrestling.com/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/tritonwrestling.com/privkey.pem
+</VirtualHost>
+</IfModule>

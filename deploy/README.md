@@ -3,12 +3,12 @@
 The repo root is **not** the web root. Each `sites/<vhost>/` directory maps to
 one Apache vhost web root on the droplet:
 
-| Repo dir            | Droplet web root                        | Vhost                          |
-| ------------------- | --------------------------------------- | ------------------------------ |
-| `sites/main`        | `/var/www/ucsdwrestlingclub.com`              | `ucsdwrestlingclub.com`              |
-| `sites/test`        | `/var/www/test.ucsdwrestlingclub.com`         | `test.ucsdwrestlingclub.com`         |
-| `sites/collector`   | `/var/www/collector.ucsdwrestlingclub.com`    | `collector.ucsdwrestlingclub.com`    |
-| `sites/reporting`   | `/var/www/reporting.ucsdwrestlingclub.com`    | `reporting.ucsdwrestlingclub.com`    |
+| Repo dir          | Droplet web root                         | Vhost                           |
+| ----------------- | ---------------------------------------- | ------------------------------- |
+| `sites/main`      | `/var/www/tritonwrestling.com`           | `tritonwrestling.com`           |
+| `sites/test`      | `/var/www/test.tritonwrestling.com`      | `test.tritonwrestling.com`      |
+| `sites/collector` | `/var/www/collector.tritonwrestling.com` | `collector.tritonwrestling.com` |
+| `sites/reporting` | `/var/www/reporting.tritonwrestling.com` | `reporting.tritonwrestling.com` |
 
 One directory is synced to the droplet **without** being a web root:
 
@@ -43,7 +43,7 @@ root over SSH, syncs `src/sql/` to `~/cse135/sql`, and reloads Apache.
    - `DROPLET_HOST` — droplet IP/hostname
    - `DROPLET_USER` — deploy username
    - `DROPLET_SSH_KEY` — contents of the **private** `deploy_key`
-   - `DOMAIN` — e.g. `ucsdwrestlingclub.com`
+   - `DOMAIN` — e.g. `tritonwrestling.com`
 4. Push to `main`. Watch the run under the Actions tab.
 
 > For HW1's `Github-Deploy.gif` deliverable: record editing a file → committing →
@@ -62,8 +62,8 @@ TMP=$(mktemp -d)
 git --work-tree="$TMP" --git-dir="$HOME/site.git" checkout -f main
 for d in main test collector reporting; do
   case "$d" in
-    main) root="/var/www/ucsdwrestlingclub.com" ;;
-    *)    root="/var/www/$d.ucsdwrestlingclub.com" ;;
+    main) root="/var/www/tritonwrestling.com" ;;
+    *)    root="/var/www/$d.tritonwrestling.com" ;;
   esac
   mkdir -p "$root"
   rsync -a --delete --exclude README.md --exclude .gitkeep "$TMP/sites/$d/" "$root/"
@@ -91,6 +91,11 @@ Then locally: `git remote add production <user>@<host>:site.git` and
   auth so `collector.js`, `px.gif` and `/log` are reachable anonymously
 - `deploy/apache/reporting.conf.sample` — HW3 reporting vhost; `/api` front-controller
   rewrite, basic auth left on everything
+- `deploy/apache/default.conf.sample` — `000-default`: catch-all :80/:443 vhost that
+  redirects bare-IP / unknown-Host requests to `https://tritonwrestling.com/`
+- `deploy/apache/legacy-redirect.conf.sample` — the old `ucsdwrestlingclub.com` names,
+  path-preserving redirects to their `tritonwrestling.com` counterparts (301 for
+  pages, 308 for collector/reporting so POST/PUT/DELETE keep their method)
 
 The remaining vhosts follow the same pattern with their own
 `ServerName`/`DocumentRoot`. Enable with `a2ensite`, then run `certbot` for SSL.

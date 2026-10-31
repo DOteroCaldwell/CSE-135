@@ -1,14 +1,14 @@
 # Sample Apache vhost for the main team site.
-# Copy to /etc/apache2/sites-available/ucsdwrestlingclub.com.conf on the droplet,
-# then:  sudo a2ensite ucsdwrestlingclub.com && sudo systemctl reload apache2
+# Copy to /etc/apache2/sites-available/tritonwrestling.com.conf on the droplet,
+# then:  sudo a2ensite tritonwrestling.com && sudo systemctl reload apache2
 # Run certbot afterwards to add the HTTPS (:443) vhost automatically.
 
 <VirtualHost *:80>
-    ServerName ucsdwrestlingclub.com
-    ServerAlias www.ucsdwrestlingclub.com
-    DocumentRoot /var/www/ucsdwrestlingclub.com
+    ServerName tritonwrestling.com
+    ServerAlias www.tritonwrestling.com
+    DocumentRoot /var/www/tritonwrestling.com
 
-    <Directory /var/www/ucsdwrestlingclub.com>
+    <Directory /var/www/tritonwrestling.com>
         Options -Indexes +FollowSymLinks
         AllowOverride All
         Require all granted

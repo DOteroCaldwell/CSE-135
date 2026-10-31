@@ -19,10 +19,10 @@ const DB_CONFIG_PATH = '/etc/cse135/db.ini';
  * Session cookie policy.
  *
  * `domain` is left empty ON PURPOSE, which makes the cookie host-only —
- * reporting.ucsdwrestlingclub.com and nowhere else.
+ * reporting.tritonwrestling.com and nowhere else.
  *
  * This is the opposite of the analytics `sid` cookie, which is deliberately scoped
- * to .ucsdwrestlingclub.com so the collector vhost can see it. Widening the auth
+ * to .tritonwrestling.com so the collector vhost can see it. Widening the auth
  * session the same way would send an authenticated admin's session id to the test
  * site and the collector on every request — including to log.php, which writes
  * what it receives into a database. Analytics identity is domain-wide by design;

@@ -97,7 +97,7 @@ if ($graderOnly) {
     // analyst: HW3 had no user management, so the shim needs no admin rights.
     $out = $header . <<<SQL
 INSERT INTO users (username, email, password_hash, role, created_at) VALUES
-  ('grader', 'grader@ucsdwrestlingclub.com',
+  ('grader', 'grader@tritonwrestling.com',
    '{$h($grader)}', 'analyst', UTC_TIMESTAMP())
 ON DUPLICATE KEY UPDATE
   password_hash = VALUES(password_hash),
@@ -109,13 +109,13 @@ SQL;
 } else {
     $out = $header . <<<SQL
 INSERT INTO users (username, email, password_hash, role, created_at) VALUES
-  ('grader-admin', 'grader-admin@ucsdwrestlingclub.com',
+  ('grader-admin', 'grader-admin@tritonwrestling.com',
    '{$h($admin)}', 'super_admin', UTC_TIMESTAMP()),
-  ('grader-basic', 'grader-basic@ucsdwrestlingclub.com',
+  ('grader-basic', 'grader-basic@tritonwrestling.com',
    '{$h($basic)}', 'analyst', UTC_TIMESTAMP()),
-  ('grader-perf', 'grader-perf@ucsdwrestlingclub.com',
+  ('grader-perf', 'grader-perf@tritonwrestling.com',
    '{$h($perf)}', 'analyst', UTC_TIMESTAMP()),
-  ('grader-viewer', 'grader-viewer@ucsdwrestlingclub.com',
+  ('grader-viewer', 'grader-viewer@tritonwrestling.com',
    '{$h($viewer)}', 'viewer', UTC_TIMESTAMP())
 ON DUPLICATE KEY UPDATE
   password_hash = VALUES(password_hash),
